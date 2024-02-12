@@ -1,9 +1,9 @@
+use graphul::extract::Json;
+use serde_json::{json, Result as SerdeResult, Value};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::vec::Vec;
-
-
 #[derive(Debug)]
 pub struct Matrix {
     n: usize,
@@ -31,16 +31,24 @@ impl Matrix {
     }
 
     pub fn init(&mut self, input_string: &str) {
+        let input_string: Value = serde_json::from_str(input_string).unwrap();
+        let input_string = &input_string["data"].as_str().unwrap();
         let mut lines = input_string.lines();
 
         // Parse the dimension 'n'
         let n_str = lines.next().expect("Input string is empty");
-        self.n = n_str.trim().parse().expect("Invalid input for dimension 'n'");
+        self.n = n_str
+            .trim()
+            .parse()
+            .expect("Invalid input for dimension 'n'");
 
         // Parse matrix coefficients and 'b' values
         for _ in 0..self.n {
             let line = lines.next().expect("Insufficient input lines");
-            let row: Vec<f64> = line.split_whitespace().map(|s| s.parse().expect("Invalid input for matrix coefficients")).collect();
+            let row: Vec<f64> = line
+                .split_whitespace()
+                .map(|s| s.parse().expect("Invalid input for matrix coefficients"))
+                .collect();
             let b_val = row.last().expect("Invalid input for 'b' value").clone();
             self.b.push(b_val);
             let a_row = row[..self.n].to_vec();
@@ -55,15 +63,19 @@ impl Matrix {
         self.acc = acc_str.trim().parse().expect("Invalid input for accuracy");
     }
 
-    pub fn init_from_file(&mut self, file_path: &str) -> Result<(), io::Error> {
-        let file = File::open(file_path)?;
-        let mut lines = io::BufReader::new(file).lines().map(|l| l.unwrap());
+    pub fn init_from_file(&mut self, file_data: &str) -> Result<(), io::Error> {
+        // let file = File::open(file_path)?;
+        // let mut lines = io::BufReader::new(file).lines().map(|l| l.unwrap());
 
+        let mut lines = file_data.lines();
         self.n = lines.next().unwrap().parse().unwrap();
 
         for _ in 0..self.n {
             let line = lines.next().unwrap();
-            let row: Vec<f64> = line.split_whitespace().map(|s| s.parse().unwrap()).collect();
+            let row: Vec<f64> = line
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
             let b_val = row.last().unwrap().clone();
             self.b.push(b_val);
             let a_row = row[..self.n].to_vec();
@@ -138,15 +150,22 @@ impl Matrix {
         self.sol_iter += 1;
     }
 
-    fn solve(&mut self) {
+    pub fn solve(&mut self) -> Json<serde_json::Value> {
         if !self.shuffle() {
-            println!("Невозможно привести к диагональному преобладанию.");
-            return;
+            return Json(json!({"error": "Невозможно привести к диагональному преобладанию."}));
         }
-        while self.sol_acc.iter().max_by(|a, b| a.total_cmp(b)).unwrap() > &self.acc && self.sol_iter < self.max_iter {
+        while self.sol_acc.iter().max_by(|a, b| a.total_cmp(b)).unwrap() > &self.acc
+            && self.sol_iter < self.max_iter
+        {
             self.iterate();
         }
-        self.print_sol();
+        // self.print_sol();
+        Json(json!({
+            "sol": self.sol,
+            "acc": self.sol_acc,
+            "iter": self.sol_iter,
+            
+        }))
     }
 
     fn print(&self) {
@@ -167,4 +186,3 @@ impl Matrix {
         println!("array {:?}", self)
     }
 }
-

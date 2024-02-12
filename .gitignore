@@ -1,1 +1,3 @@
 /target
+/frontend/spa/build
+/frontend/spa/node_modules
