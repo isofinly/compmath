@@ -2,9 +2,8 @@ mod compute;
 mod routes;
 
 use graphul::{
-    http::utils::Method,
-    middleware::tower::cors::{self, AllowHeaders, Any},
-    FileConfig, FolderConfig, Graphul,
+    middleware::tower::cors::{self, Any},
+    Graphul,
 };
 use routes::routes;
 

@@ -1,8 +1,7 @@
 use graphul::extract::Json;
-use serde_json::{json, Result as SerdeResult, Value};
+use serde_json::{json, Value};
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self};
 use std::vec::Vec;
 #[derive(Debug)]
 pub struct Matrix {
@@ -32,7 +31,7 @@ impl Matrix {
 
     pub fn init(&mut self, input_string: &str) {
         let input_string: Value = serde_json::from_str(input_string).unwrap();
-        let input_string = &input_string["data"].as_str().unwrap();
+        let input_string = input_string["data"].as_str().unwrap();
         let mut lines = input_string.lines();
 
         // Parse the dimension 'n'
@@ -49,8 +48,8 @@ impl Matrix {
                 .split_whitespace()
                 .map(|s| s.parse().expect("Invalid input for matrix coefficients"))
                 .collect();
-            let b_val = row.last().expect("Invalid input for 'b' value").clone();
-            self.b.push(b_val);
+            let b_val = row.last().expect("Invalid input for 'b' value");
+            self.b.push(*b_val);
             let a_row = row[..self.n].to_vec();
             self.a.push(a_row);
         }
@@ -76,8 +75,8 @@ impl Matrix {
                 .split_whitespace()
                 .map(|s| s.parse().unwrap())
                 .collect();
-            let b_val = row.last().unwrap().clone();
-            self.b.push(b_val);
+            let b_val = row.last().unwrap();
+            self.b.push(*b_val);
             let a_row = row[..self.n].to_vec();
             self.a.push(a_row);
         }
@@ -106,6 +105,7 @@ impl Matrix {
         let mut biggest = vec![-1; self.n];
         let mut biggest_set = HashSet::new();
         let mut found_strict = false;
+
         for i in 0..self.n {
             let sum: f64 = self.a[i].iter().sum();
             for j in 0..self.n {
@@ -129,6 +129,7 @@ impl Matrix {
 
         let mut shuffled_a = vec![vec![]; self.n];
         let mut shuffled_b = vec![0.0; self.n];
+        
         for i in 0..self.n {
             let index = biggest[i] as usize;
             shuffled_a[index] = self.a[i].clone();
@@ -164,10 +165,11 @@ impl Matrix {
             "sol": self.sol,
             "acc": self.sol_acc,
             "iter": self.sol_iter,
-            
+
         }))
     }
 
+    #[allow(dead_code)]
     fn print(&self) {
         for i in 0..self.n {
             for j in 0..self.n {
@@ -176,7 +178,8 @@ impl Matrix {
             println!("| {}", self.b[i]);
         }
     }
-
+    
+    #[allow(dead_code)]
     fn print_sol(&self) {
         println!("--- Решение ---");
         for i in 0..self.n {

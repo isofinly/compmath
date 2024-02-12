@@ -8,10 +8,10 @@ import {
   Legend,
 } from "chart.js";
 import { Scatter } from "react-chartjs-2";
-import { Key, useState } from "react";
+import { useState } from "react";
 
 const LinearEquationPage = () => {
-  const [solution, setSolution] = useState<string>("");
+  const [solution, setSolution] = useState<any>("");
   const [value, setValue] = useState<string>("");
   ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -71,9 +71,9 @@ const LinearEquationPage = () => {
       },
       title: {
         display: true,
-        text: "График функции"
-      }
-    }
+        text: "График функции",
+      },
+    },
   };
 
   const data = {
@@ -88,7 +88,7 @@ const LinearEquationPage = () => {
 
   function getMaxZeros(solution: any) {
     const max = Math.max(...solution.acc);
-    const zeros = Math.abs(Math.floor(Math.log10(max)))-1;
+    const zeros = Math.abs(Math.floor(Math.log10(max))) - 1;
     return zeros;
   }
 
@@ -149,7 +149,6 @@ const LinearEquationPage = () => {
                 <input
                   name="file"
                   type="file"
-                  rows={3}
                   className="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />
                 <div className="mt-6 flex items-center justify-end gap-x-6">
@@ -192,7 +191,7 @@ const LinearEquationPage = () => {
                 </label>
                 <div className="py-2">
                   {solution &&
-                    solution.sol.map((item: Key | null | undefined) => (
+                    solution.sol.map((item: any) => (
                       <div className="col-span-1 w-fit py-1" key={item}>
                         <input
                           type="text"
@@ -213,7 +212,7 @@ const LinearEquationPage = () => {
                 </label>
                 <div className="py-2">
                   {solution &&
-                    solution.acc.map((item: Key | null | undefined) => (
+                    solution.acc.map((item: any) => (
                       <div className="col-span-1 w-fit py-1" key={item}>
                         <input
                           type="text"

@@ -1,12 +1,15 @@
-use std::{fs::{self, File}, io::{BufRead, BufWriter, Write}, marker};
+use std::io::BufRead;
+use std::str;
 
-use graphul::{extract::Json, http::{utils::header::CONTENT_TYPE, Methods}, Context, Graphul};
+use graphul::{
+    extract::Json,
+    http::{utils::header::CONTENT_TYPE, Methods},
+    Context, Graphul,
+};
 use multipart::server::Multipart;
-use serde_json::json;
 use regex::Regex;
 
 use crate::compute::Matrix;
-
 
 async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body();
@@ -24,26 +27,22 @@ async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
     let captures = re.captures(boundary).unwrap();
     let boundary = captures.get(1).unwrap().as_str();
 
-    let mut mp = Multipart::with_body(
-        str_ref.as_bytes(),
-        boundary,
-    );
+    let mut mp = Multipart::with_body(str_ref.as_bytes(), boundary);
 
     let mut buffer: Vec<u8> = Vec::new();
-    
+
     while let Some(mut field) = mp.read_entry().unwrap() {
         let data = field.data.fill_buf().unwrap();
         buffer.extend_from_slice(data);
     }
 
     let mut matrix = Matrix::new();
-    let str_ref = std::str::from_utf8(&buffer).unwrap(); 
-    matrix.init_from_file(&str_ref).unwrap();
+    let str_ref = str::from_utf8(&buffer).unwrap();
+    matrix.init_from_file(str_ref).unwrap();
 
     // String::from(str_ref);
-    matrix.solve()    
+    matrix.solve()
 }
-
 
 pub async fn routes() -> Graphul {
     let mut router = Graphul::router();
