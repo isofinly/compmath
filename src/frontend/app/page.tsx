@@ -20,34 +20,45 @@ const LinearEquationPage = () => {
   ) => {
     event.preventDefault();
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/linear_equation/string",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: value,
-        }),
-      }
-    );
-    const data = await response.json();
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/linear_equation/string",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            data: value,
+          }),
+        }
+      );
+      const data = await response.json();
 
-    setSolution(data);
+      setSolution(data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleSubmitFile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const formData = new FormData(event.currentTarget);
-    const response = await fetch("http://127.0.0.1:8000/linear_equation/file", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
+    try {
+      const formData = new FormData(event.currentTarget);
+      const response = await fetch(
+        "http://127.0.0.1:8000/linear_equation/file",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const data = await response.json();
 
-    setSolution(data);
+      setSolution(data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const options = {
