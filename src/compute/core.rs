@@ -37,7 +37,7 @@ impl Matrix {
         let input_string: Value = serde_json::from_str(input_string)?;
         let input_string = input_string["data"]
             .as_str()
-            .ok_or("No 'data' field in input string")?;
+            .ok_or("No 'data' field in input string")?.replace(",",".");
         let mut lines = input_string.lines();
 
         // Parse the dimension 'n'
@@ -73,6 +73,7 @@ impl Matrix {
         let acc_str = lines.next().ok_or("Insufficient input lines")?;
         self.acc = acc_str
             .trim()
+            .replace(",", ".")
             .parse()
             .map_err(|_| "Invalid input for accuracy")?;
         if self.acc <= 0.0 {
@@ -87,10 +88,10 @@ impl Matrix {
         self.n = lines.next().unwrap().replace(",", ".").parse().unwrap();
 
         for _ in 0..self.n {
-            let line = lines.next().unwrap().replace(",", ".");
+            let line = lines.next().unwrap();
             let row: Vec<f64> = line
                 .split_whitespace()
-                .map(|s| s.replace(",", ".").parse().unwrap())
+                .map(|s| s.parse().unwrap())
                 .collect();
             let b_val = row.last().unwrap();
             self.b.push(*b_val);
@@ -125,7 +126,7 @@ impl Matrix {
      * Diagonal dominance means that for each row, the magnitude of the diagonal element is greater than
      * the sum of the magnitudes of all the other (non-diagonal) elements in that row.
      */
-        fn shuffle(&mut self) -> (bool, Vec<Vec<f64>>) {
+    fn shuffle(&mut self) -> (bool, Vec<Vec<f64>>) {
         let mut biggest = vec![-1; self.n];
         let mut biggest_set = HashSet::new();
         let mut found_strict = false;
@@ -164,9 +165,9 @@ impl Matrix {
         self.b = shuffled_b;
 
         (true, shuffled_a)
-        }
+    }
 
-        fn find_c_and_d(coefficients: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    fn find_c_and_d(coefficients: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
         let n = coefficients.len(); // The number of rows, assuming a square matrix for coefficients
         let mut c = vec![vec![0.0; n]; n]; // Initialize C matrix with zeros
 
@@ -186,9 +187,9 @@ impl Matrix {
         }
 
         c
-        }
+    }
 
-        fn iterate(&mut self) {
+    fn iterate(&mut self) {
         let mut new_sol = vec![0.0; self.n];
         for i in 0..self.n {
             new_sol[i] = self.b[i] / self.a[i][i] - self.sum_sol_row(i);
@@ -196,9 +197,9 @@ impl Matrix {
         }
         self.sol = new_sol;
         self.sol_iter += 1;
-        }
+    }
 
-        pub fn solve(&mut self) -> Json<serde_json::Value> {
+    pub fn solve(&mut self) -> Json<serde_json::Value> {
         let mut err = String::new();
 
         if !self.shuffle().0 {
@@ -233,7 +234,7 @@ impl Matrix {
             "mtrx": self.shuffled_matrix,
             "err": err,
         }))
-        }
+    }
 
     #[allow(dead_code)]
     fn print(&self) {
