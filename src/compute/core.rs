@@ -91,7 +91,7 @@ impl Matrix {
             let line = lines.next().unwrap();
             let row: Vec<f64> = line
                 .split_whitespace()
-                .map(|s| s.parse().unwrap())
+                .map(|s| s.replace(",", ".").parse().unwrap())
                 .collect();
             let b_val = row.last().unwrap();
             self.b.push(*b_val);
@@ -103,7 +103,7 @@ impl Matrix {
         self.sol_acc = vec![std::f64::MAX; self.n];
 
         let acc_line = lines.next().unwrap();
-        self.acc = acc_line.parse().unwrap();
+        self.acc = acc_line.replace(",", ".").parse().unwrap();
         if self.acc <= 0.0 {
             return Err("Accuracy must be positive".into());
         }
@@ -120,6 +120,32 @@ impl Matrix {
             sum += self.a[i][j] / self.a[i][i] * self.sol[j];
         }
         sum
+    }
+    
+    fn gaussian_elimination_determinant(matrix: &Vec<Vec<f64>>) -> f64 {
+        let mut det = 1.0;
+        let n = matrix.len();
+        let mut mat = matrix.clone();
+    
+        for i in 0..n {
+            // Find pivot for column i
+            let pivot = mat[i][i];
+            if pivot == 0.0 {
+                return 0.0; // Singular matrix
+            }
+    
+            det *= pivot;
+    
+            // Forward elimination
+            for j in (i + 1)..n {
+                let factor = mat[j][i] / pivot;
+                for k in i..n {
+                    mat[j][k] -= factor * mat[i][k];
+                }
+            }
+        }
+    
+        det
     }
 
     /**
@@ -201,6 +227,11 @@ impl Matrix {
 
     pub fn solve(&mut self) -> Json<serde_json::Value> {
         let mut err = String::new();
+
+        if Self::gaussian_elimination_determinant(&self.a) == 0.0 {
+            return Json(json!({"error": "Singular matrix"}));
+        }
+
 
         if !self.shuffle().0 {
             err = String::from("Невозможно привести к диагональному преобладанию.")

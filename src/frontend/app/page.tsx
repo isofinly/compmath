@@ -22,7 +22,7 @@ const LinearEquationPage = () => {
       y: {
         title: {
           display: true,
-          text: "Вектор погрешности",
+          text: solution ? `Вектор погрешности 10^-${getMaxZeros(solution)}` : "Вектор погрешности",
         },
       },
       x: {
@@ -90,6 +90,8 @@ const LinearEquationPage = () => {
       setSolution(data);
     } catch (error) {
       console.error(error);
+      handleOpen();
+      setError("Error while processing: Matrix data error");
     }
   };
 
@@ -114,6 +116,8 @@ const LinearEquationPage = () => {
       setSolution(data);
     } catch (error) {
       console.error(error);
+      handleOpen();
+      setError("Error while uploading: File data error");
     }
   };
 
