@@ -232,7 +232,6 @@ impl Matrix {
             return Json(json!({"error": "Singular matrix"}));
         }
 
-
         if !self.shuffle().0 {
             err = String::from("Невозможно привести к диагональному преобладанию.")
         }
