@@ -14,8 +14,12 @@ use crate::compute::Matrix;
 async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body();
     let mut matrix = Matrix::new();
-    matrix.init(&str_ref);
+    let res = matrix.init(&str_ref);
 
+    if res.is_err() {
+        return Json(serde_json::json!({ "error": res.err().unwrap().to_string() }));
+    }
+    
     matrix.solve()
 }
 

@@ -1,7 +1,7 @@
 use graphul::extract::Json;
 use serde_json::{json, Value};
 use std::collections::HashSet;
-use std::io::{self};
+use std::error::Error;
 use std::vec::Vec;
 #[derive(Debug)]
 pub struct Matrix {
@@ -9,6 +9,8 @@ pub struct Matrix {
     acc: f64,
     a: Vec<Vec<f64>>,
     b: Vec<f64>,
+    c: Vec<Vec<f64>>,
+    shuffled_matrix: Vec<Vec<f64>>,
     sol: Vec<f64>,
     sol_acc: Vec<f64>,
     sol_iter: usize,
@@ -22,6 +24,8 @@ impl Matrix {
             acc: 0.0,
             a: Vec::new(),
             b: Vec::new(),
+            c: Vec::new(),
+            shuffled_matrix: Vec::new(),
             sol: Vec::new(),
             sol_acc: Vec::new(),
             sol_iter: 0,
@@ -29,26 +33,34 @@ impl Matrix {
         }
     }
 
-    pub fn init(&mut self, input_string: &str) {
-        let input_string: Value = serde_json::from_str(input_string).unwrap();
-        let input_string = input_string["data"].as_str().unwrap();
+    pub fn init(&mut self, input_string: &str) -> Result<(), Box<dyn Error>> {
+        let input_string: Value = serde_json::from_str(input_string)?;
+        let input_string = input_string["data"]
+            .as_str()
+            .ok_or("No 'data' field in input string")?;
         let mut lines = input_string.lines();
 
         // Parse the dimension 'n'
-        let n_str = lines.next().expect("Input string is empty");
+        let n_str = lines.next().ok_or("Input string is empty")?;
         self.n = n_str
             .trim()
+            .replace(",", ".")
             .parse()
-            .expect("Invalid input for dimension 'n'");
+            .map_err(|_| "Invalid input for dimension 'n'")?;
 
         // Parse matrix coefficients and 'b' values
         for _ in 0..self.n {
-            let line = lines.next().expect("Insufficient input lines");
-            let row: Vec<f64> = line
+            let line = lines.next().ok_or("Insufficient input lines")?;
+            let row: Result<Vec<f64>, _> = line
                 .split_whitespace()
-                .map(|s| s.parse().expect("Invalid input for matrix coefficients"))
+                .map(|s| {
+                    s.replace(",", ".")
+                        .parse()
+                        .map_err(|_| "Invalid input for matrix coefficients")
+                })
                 .collect();
-            let b_val = row.last().expect("Invalid input for 'b' value");
+            let row = row?;
+            let b_val = row.last().ok_or("Invalid input for 'b' value")?;
             self.b.push(*b_val);
             let a_row = row[..self.n].to_vec();
             self.a.push(a_row);
@@ -58,22 +70,27 @@ impl Matrix {
         self.sol_acc = vec![std::f64::MAX; self.n];
 
         // Parse accuracy
-        let acc_str = lines.next().expect("Insufficient input lines");
-        self.acc = acc_str.trim().parse().expect("Invalid input for accuracy");
+        let acc_str = lines.next().ok_or("Insufficient input lines")?;
+        self.acc = acc_str
+            .trim()
+            .parse()
+            .map_err(|_| "Invalid input for accuracy")?;
+        if self.acc <= 0.0 {
+            return Err("Accuracy must be positive".into());
+        }
+
+        Ok(())
     }
 
-    pub fn init_from_file(&mut self, file_data: &str) -> Result<(), io::Error> {
-        // let file = File::open(file_path)?;
-        // let mut lines = io::BufReader::new(file).lines().map(|l| l.unwrap());
-
+    pub fn init_from_file(&mut self, file_data: &str) -> Result<(), Box<dyn Error>> {
         let mut lines = file_data.lines();
-        self.n = lines.next().unwrap().parse().unwrap();
+        self.n = lines.next().unwrap().replace(",", ".").parse().unwrap();
 
         for _ in 0..self.n {
-            let line = lines.next().unwrap();
+            let line = lines.next().unwrap().replace(",", ".");
             let row: Vec<f64> = line
                 .split_whitespace()
-                .map(|s| s.parse().unwrap())
+                .map(|s| s.replace(",", ".").parse().unwrap())
                 .collect();
             let b_val = row.last().unwrap();
             self.b.push(*b_val);
@@ -86,6 +103,9 @@ impl Matrix {
 
         let acc_line = lines.next().unwrap();
         self.acc = acc_line.parse().unwrap();
+        if self.acc <= 0.0 {
+            return Err("Accuracy must be positive".into());
+        }
 
         Ok(())
     }
@@ -101,7 +121,11 @@ impl Matrix {
         sum
     }
 
-    fn shuffle(&mut self) -> bool {
+    /**
+     * Diagonal dominance means that for each row, the magnitude of the diagonal element is greater than
+     * the sum of the magnitudes of all the other (non-diagonal) elements in that row.
+     */
+        fn shuffle(&mut self) -> (bool, Vec<Vec<f64>>) {
         let mut biggest = vec![-1; self.n];
         let mut biggest_set = HashSet::new();
         let mut found_strict = false;
@@ -119,29 +143,52 @@ impl Matrix {
                 }
             }
             if biggest[i] == -1 {
-                return false;
+                return (false, vec![vec![0.0]]);
             }
         }
 
         if !found_strict || biggest.len() != biggest_set.len() {
-            return false;
+            return (false, vec![vec![0.0]]);
         }
 
         let mut shuffled_a = vec![vec![]; self.n];
         let mut shuffled_b = vec![0.0; self.n];
-        
+
         for i in 0..self.n {
             let index = biggest[i] as usize;
             shuffled_a[index] = self.a[i].clone();
             shuffled_b[index] = self.b[i];
         }
 
-        self.a = shuffled_a;
+        self.a = shuffled_a.clone();
         self.b = shuffled_b;
-        true
-    }
 
-    fn iterate(&mut self) {
+        (true, shuffled_a)
+        }
+
+        fn find_c_and_d(coefficients: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+        let n = coefficients.len(); // The number of rows, assuming a square matrix for coefficients
+        let mut c = vec![vec![0.0; n]; n]; // Initialize C matrix with zeros
+
+        for i in 0..n {
+            // Diagonal element of the current row
+            let diag_elem = coefficients[i][i];
+
+            for j in 0..n {
+                // Check if the current element is not on the diagonal
+                if i != j {
+                    // C matrix is -1 times the original coefficient matrix divided by the diagonal element
+                    c[i][j] = -coefficients[i][j] / diag_elem;
+                }
+            }
+            // The diagonal elements of C are set to zero
+            c[i][i] = 0.0;
+        }
+
+        c
+        }
+
+        fn iterate(&mut self) {
         let mut new_sol = vec![0.0; self.n];
         for i in 0..self.n {
             new_sol[i] = self.b[i] / self.a[i][i] - self.sum_sol_row(i);
@@ -149,25 +196,44 @@ impl Matrix {
         }
         self.sol = new_sol;
         self.sol_iter += 1;
-    }
-
-    pub fn solve(&mut self) -> Json<serde_json::Value> {
-        if !self.shuffle() {
-            return Json(json!({"error": "Невозможно привести к диагональному преобладанию."}));
         }
+
+        pub fn solve(&mut self) -> Json<serde_json::Value> {
+        let mut err = String::new();
+
+        if !self.shuffle().0 {
+            err = String::from("Невозможно привести к диагональному преобладанию.")
+        }
+
+        self.shuffled_matrix = self.shuffle().1;
+
         while self.sol_acc.iter().max_by(|a, b| a.total_cmp(b)).unwrap() > &self.acc
             && self.sol_iter < self.max_iter
         {
             self.iterate();
         }
         // self.print_sol();
+
+        if !self.shuffled_matrix.is_empty() {
+            self.c = Matrix::find_c_and_d(self.shuffle().1);
+            return Json(json!({
+                "sol": self.sol,
+                "acc": self.sol_acc,
+                "iter": self.sol_iter,
+                "c": self.c,
+                "mtrx": self.shuffled_matrix,
+                "err": err,
+            }));
+        }
+
         Json(json!({
             "sol": self.sol,
             "acc": self.sol_acc,
             "iter": self.sol_iter,
-
+            "mtrx": self.shuffled_matrix,
+            "err": err,
         }))
-    }
+        }
 
     #[allow(dead_code)]
     fn print(&self) {
@@ -178,7 +244,7 @@ impl Matrix {
             println!("| {}", self.b[i]);
         }
     }
-    
+
     #[allow(dead_code)]
     fn print_sol(&self) {
         println!("--- Решение ---");
