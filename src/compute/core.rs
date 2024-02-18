@@ -122,31 +122,41 @@ impl Matrix {
         sum
     }
     
-    fn gaussian_elimination_determinant(matrix: &Vec<Vec<f64>>) -> f64 {
+    fn gaussian_elimination_determinant(mut matrix: Vec<Vec<f64>>) -> f64 {
         let mut det = 1.0;
         let n = matrix.len();
-        let mut mat = matrix.clone();
     
         for i in 0..n {
-            // Find pivot for column i
-            let pivot = mat[i][i];
-            if pivot == 0.0 {
-                return 0.0; // Singular matrix
+            // Find pivot for column i and swap if necessary
+            let mut max = i;
+            for j in (i + 1)..n {
+                if matrix[j][i].abs() > matrix[max][i].abs() {
+                    max = j;
+                }
+            }
+            if matrix[max][i] == 0.0 {
+                return 0.0; // Singular matrix, determinant is zero
+            }
+            if max != i {
+                matrix.swap(i, max);
+                det *= -1.0; // Swapping rows changes the sign of the determinant
             }
     
+            let pivot = matrix[i][i];
             det *= pivot;
     
             // Forward elimination
             for j in (i + 1)..n {
-                let factor = mat[j][i] / pivot;
+                let factor = matrix[j][i] / pivot;
                 for k in i..n {
-                    mat[j][k] -= factor * mat[i][k];
+                    matrix[j][k] -= factor * matrix[i][k];
                 }
             }
         }
     
         det
     }
+    
 
     /**
      * Diagonal dominance means that for each row, the magnitude of the diagonal element is greater than
@@ -228,7 +238,7 @@ impl Matrix {
     pub fn solve(&mut self) -> Json<serde_json::Value> {
         let mut err = String::new();
 
-        if Self::gaussian_elimination_determinant(&self.a) == 0.0 {
+        if Self::gaussian_elimination_determinant(self.a.clone()) == 0.0 {
             return Json(json!({"error": "Singular matrix"}));
         }
 
