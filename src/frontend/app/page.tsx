@@ -178,7 +178,7 @@ const LinearEquationPage = () => {
           </p>
 
           <div className="col-span-full mb-6">
-            <label className="block text-sm font-medium leading-6 text-gray-900">
+            <label className="block text-md font-medium leading-6 text-gray-900">
               Ручной ввод параметров
             </label>
             <div className="mt-2">
