@@ -67,7 +67,15 @@ const LinearEquationPage = () => {
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
-
+    
+    setSolution({
+      sol: [],
+      acc: [],
+      c: [],
+      mtrx: [],
+      err: "",
+      iter: ""
+    })
     try {
       const response = await fetch(
         "http://127.0.0.1:8000/linear_equation/string",
@@ -82,6 +90,7 @@ const LinearEquationPage = () => {
         }
       );
       const data = await response.json();
+      
       if (data.error) {
         handleOpen();
         setError(data.error);
@@ -91,13 +100,21 @@ const LinearEquationPage = () => {
     } catch (error) {
       console.error(error);
       handleOpen();
-      setError("Error while processing: Matrix data error");
+      setError(`Error while processing: ${error}`);
     }
   };
 
   const handleSubmitFile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    setSolution({
+      sol: [],
+      acc: [],
+      c: [],
+      mtrx: [],
+      err: "",
+      iter: ""
+    })
     try {
       const formData = new FormData(event.currentTarget);
       const response = await fetch(
@@ -108,6 +125,7 @@ const LinearEquationPage = () => {
         }
       );
       const data = await response.json();
+      
       if (data.error) {
         handleOpen();
         setError(data.error);
@@ -117,7 +135,7 @@ const LinearEquationPage = () => {
     } catch (error) {
       console.error(error);
       handleOpen();
-      setError("Error while uploading: File data error");
+      setError(`Error while uploading: ${error}`);
     }
   };
 
@@ -166,6 +184,10 @@ const LinearEquationPage = () => {
     return data;
   }
 
+  function setSol(){
+
+  }
+
   return (
     <>
       <div className="container mx-auto space-y-12 py-8">
@@ -185,6 +207,12 @@ const LinearEquationPage = () => {
               <form onSubmit={handleSubmitString}>
                 <textarea
                   name="data"
+                  placeholder="3 \n
+                  2 2 10 14 \n
+                  10 1 1 12 \n
+                  2 10 1 13 \n
+                  0,001
+                  "
                   rows={3}
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
@@ -312,7 +340,7 @@ const LinearEquationPage = () => {
                     id="mtrx"
                     value={solution ? solution.c.map((item: any[]) => item.join(' ')).join('\n') : ""}
                     disabled
-                    className="px-2 block w-fit rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="px-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   >
                   </textarea>
                 </div>
@@ -327,7 +355,7 @@ const LinearEquationPage = () => {
                     id="mtrx"
                     value={solution ? solution.mtrx.map((item: any[]) => item.join(' ')).join('\n') : ""}
                     disabled
-                    className="px-2 block w-fit rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="px-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   >
                   </textarea>
                 </div>
@@ -339,7 +367,7 @@ const LinearEquationPage = () => {
                 </label>
                 <div className="py-2">
                   {solution &&
-                    solution.sol.map((item: any) => (item &&
+                    solution.sol.map((item: any) => (
                       <div className="col-span-1 w-fit py-1" key={item}>
                         <input
                           type="text"
@@ -360,7 +388,7 @@ const LinearEquationPage = () => {
                 </label>
                 <div className="py-2">
                   {solution &&
-                    solution.acc.map((item: any) => (item &&
+                    solution.acc.map((item: any) => (
                       <div className="col-span-1 w-fit py-1" key={item}>
                         <input
                           type="text"

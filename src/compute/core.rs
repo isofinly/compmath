@@ -85,6 +85,7 @@ impl Matrix {
 
     pub fn init_from_file(&mut self, file_data: &str) -> Result<(), Box<dyn Error>> {
         let mut lines = file_data.lines();
+
         self.n = lines.next().unwrap().replace(",", ".").parse().unwrap();
 
         for _ in 0..self.n {
@@ -104,8 +105,8 @@ impl Matrix {
 
         let acc_line = lines.next().unwrap();
         self.acc = acc_line.replace(",", ".").parse().unwrap();
-        if self.acc <= 0.0 {
-            return Err("Accuracy must be positive".into());
+        if self.acc < 0.0 {
+            return Err("Accuracy must be greater than 0".into());
         }
 
         Ok(())

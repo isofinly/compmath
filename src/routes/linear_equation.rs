@@ -26,14 +26,16 @@ async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
 async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body().as_str().to_string();
     let boundary = ctx.headers().get(CONTENT_TYPE).unwrap().to_str().unwrap();
+    // panic!("{:?} \n \n {:?}", str_ref, boundary);
 
-    let re = Regex::new(r"boundary=(.*)").unwrap();
+    let re: Regex = Regex::new(r"boundary=(.*)").unwrap();
     let captures = re.captures(boundary).unwrap();
     let boundary = captures.get(1).unwrap().as_str();
 
     let mut mp = Multipart::with_body(str_ref.as_bytes(), boundary);
 
     let mut buffer: Vec<u8> = Vec::new();
+    
 
     while let Some(mut field) = mp.read_entry().unwrap() {
         let data = field.data.fill_buf().unwrap();
