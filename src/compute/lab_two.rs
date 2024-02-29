@@ -1,8 +1,4 @@
-use graphul::{
-    extract::Json,
-    http::{utils::header::CONTENT_TYPE, Methods},
-    Context, Graphul,
-};
+use graphul::extract::Json;
 
 use serde_json::{json, Value};
 use std::f64::consts::PI;
