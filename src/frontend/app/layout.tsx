@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Metadata } from "next/types";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
+import { Providers } from "./providers";
+import Header from "@/components/header";
 
 export const metadata: Metadata = {
   title: "Computational Math",
@@ -10,12 +9,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="ru">
-      <body className={inter.className}>{children}</body>
+      <link rel="icon" href="/favicon.ico" />
+      <body>
+        <main className="light text-foreground bg-background">
+          <Providers>
+            <Header />
+            {children}
+            </Providers>
+        </main>
+      </body>
     </html>
   );
 }

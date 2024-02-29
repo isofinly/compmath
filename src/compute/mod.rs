@@ -1,3 +1,4 @@
-mod core;
+mod lab_one;
+mod lab_two;
 
-pub use crate::compute::core::Matrix;
+pub use crate::compute::lab_one::Matrix;
