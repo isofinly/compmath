@@ -18,6 +18,23 @@ import {
   TableCell,
   getKeyValue,
 } from "@nextui-org/react";
+import CustomChart from "@/components/CustomChart";
+
+const saveObjectToFile = (
+  object: { key: string; anotherKey: string },
+  filename: string
+) => {
+  const json = JSON.stringify(object);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 
 const LinearEquationPage = () => {
   const [solution, setSolution] = useState<any>("");
@@ -25,6 +42,8 @@ const LinearEquationPage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState("");
   const [rows, setRows] = useState(2);
+  const [equationIndex, setEquationIndex] = useState(0);
+  const [solutionFile, setSolutionFile] = useState<any>("");
   const [halfdivisonTableRows, setHalfdivisonTableRows] = useState<any>([
     {
       key: 0,
@@ -45,9 +64,8 @@ const LinearEquationPage = () => {
         key: 0,
         iteration: 0,
         x_k: 0,
-        f_x_k: 0,
         x_k_plus_one: 0,
-        phi_x_k: 0,
+        f_x_k: 0,
         abs_diff: 0,
         err: "",
       },
@@ -65,103 +83,26 @@ const LinearEquationPage = () => {
       err: "",
     },
   ]);
-
+  const [secantTableRows, setSecantTableRows] = useState<any>([
+    {
+      key: 0,
+      iteration: 0,
+      x_k_1: 0,
+      x_k: 0,
+      x_k_plus_one: 0,
+      f_x_k_plus_one: 0,
+      abs_diff: 0,
+      err: "",
+    },
+  ]);
   const [formData, setFormData] = useState({
     eq_id: 0,
     interval: [],
-    intervalMin: 0,
-    intervalMax: 0,
+    intervalMin: -1,
+    intervalMax: 1,
     estimate: 0,
     method_id: 0,
   });
-
-  const handleChange = (e: any) => {
-    const { name, value } = e.target;
-
-    if (name === "method_id") {
-      setHalfdivisonTableRows([
-        {
-          key: 0,
-          iteration: 0,
-          a: 0,
-          b: 0,
-          x: 0,
-          fa: 0,
-          fb: 0,
-          fx: 0,
-          abs_diff: 0,
-          err: "",
-        },
-      ]);
-
-      setSimpleiterationTableRows([
-        {
-          key: 0,
-          iteration: 0,
-          x_k: 0,
-          f_x_k: 0,
-          x_k_plus_one: 0,
-          phi_x_k: 0,
-          abs_diff: 0,
-          err: "",
-        },
-      ]);
-
-      setNewtonTableRows([
-        {
-          key: 0,
-          iteration: 0,
-          x_k: 0,
-          f_x_k: 0,
-          f_prime_x_k: 0,
-          x_k_plus_one: 0,
-          abs_diff: 0,
-          err: "",
-        },
-      ]);
-    }
-    setFormData({
-      ...formData,
-      [name]: Number(value),
-    });
-  };
-
-  const options = {
-    scales: {
-      y: {
-        title: {
-          display: true,
-          text: solution ? "Вектор погрешности" : "Вектор погрешности",
-        },
-      },
-      x: {
-        title: {
-          display: true,
-          text: "Вектор неизвестных х",
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-      title: {
-        display: true,
-        text: "График функции",
-      },
-    },
-  };
-
-  const data = {
-    datasets: [
-      {
-        label: "Вектора",
-        data: [],
-        backgroundColor: "rgba(255, 99, 132, 1)",
-      },
-    ],
-  };
-
   const halfdivisonTableColumns = [
     {
       key: "iteration",
@@ -196,7 +137,6 @@ const LinearEquationPage = () => {
       label: "|a-b|",
     },
   ];
-
   const simpleiterationTableColumns = [
     {
       label: "№ шага",
@@ -219,11 +159,10 @@ const LinearEquationPage = () => {
       key: "phi_x_k",
     },
     {
-      label: "|x_k-x_{k+1}|",
+      label: "|x_{k+1}-x_k|",
       key: "abs_diff",
     },
   ];
-
   const newtonTableColumns = [
     {
       label: "№ шага",
@@ -246,10 +185,97 @@ const LinearEquationPage = () => {
       key: "x_k_plus_one",
     },
     {
-      label: "|x_k-x_{k+1}|",
+      label: "|x_{k+1}-x_k|",
       key: "abs_diff",
     },
   ];
+  const secantTableColumns = [
+    {
+      label: "№ шага",
+      key: "iteration",
+    },
+    {
+      label: "x_{k-1}",
+      key: "x_k_1",
+    },
+    {
+      label: "x_k",
+      key: "x_k",
+    },
+    {
+      label: "x_k+1",
+      key: "x_k_plus_one",
+    },
+    {
+      label: "f(x_{k+1})",
+      key: "f_x_k_plus_one",
+    },
+    {
+      label: "|x_{k+1}-x_k|",
+      key: "abs_diff",
+    },
+  ];
+
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+
+    if (name === "method_id") {
+      setHalfdivisonTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          a: 0,
+          b: 0,
+          x: 0,
+          fa: 0,
+          fb: 0,
+          fx: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+      setSimpleiterationTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          x_k: 0,
+          f_x_k: 0,
+          x_k_plus_one: 0,
+          phi_x_k: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+      setNewtonTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          x_k: 0,
+          f_x_k: 0,
+          f_prime_x_k: 0,
+          x_k_plus_one: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+      setSecantTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          x_k_1: 0,
+          x_k: 0,
+          x_k_plus_one: 0,
+          f_x_k_plus_one: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+    }
+    setFormData({
+      ...formData,
+      [name]: Number(value),
+    });
+  };
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -258,8 +284,6 @@ const LinearEquationPage = () => {
   const handleClose = () => {
     setIsOpen(false);
   };
-
-  ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
   const handleSubmitString = async (
     event: React.FormEvent<HTMLFormElement>
@@ -301,15 +325,23 @@ const LinearEquationPage = () => {
         setError(data.error);
         return;
       }
-      setSolution(data.result);
       switch (method_id) {
         case 0:
           setHalfdivisonTableRows(data?.result?.steps);
+          break;
         case 1:
           setSimpleiterationTableRows(data?.result?.steps);
+          break;
         case 2:
           setNewtonTableRows(data?.result?.steps);
+          break;
+        case 3:
+          setSecantTableRows(data?.result?.steps);
+          break;
       }
+      setSolution(data.result);
+      setSolutionFile(data.result);
+      setEquationIndex(data?.result?.eq_id);
     } catch (error) {
       console.error(error);
       handleOpen();
@@ -345,7 +377,7 @@ const LinearEquationPage = () => {
         setError(data.error);
         return;
       }
-      console.log(data.result.method_id);
+
       switch (data.result.method_id) {
         case 0: {
           formData.method_id = 0;
@@ -362,9 +394,24 @@ const LinearEquationPage = () => {
           setNewtonTableRows(data?.result?.steps);
           break;
         }
+        case 3: {
+          formData.method_id = 3;
+          setSecantTableRows(data?.result?.steps);
+          break;
+        }
       }
 
-      setSolution(data.result);
+      setSolution(data?.result);
+      setSolutionFile(data?.result);
+      setEquationIndex(data?.result?.eq_id);
+      setFormData({
+        ...formData,
+        estimate: data?.result?.estimate,
+        method_id: data?.result?.method_id,
+        eq_id: data?.result?.eq_id,
+        intervalMin: data?.result?.left,
+        intervalMax: data?.result?.right,
+      });
     } catch (error) {
       console.error(error);
       handleOpen();
@@ -372,51 +419,10 @@ const LinearEquationPage = () => {
     }
   };
 
-  useEffect(() => {
-    switch (formData.method_id) {
-      case 0:
-        setHalfdivisonTableRows([
-          {
-            key: 0,
-            iteration: 0,
-            a: 0,
-            b: 0,
-            x: 0,
-            fa: 0,
-            fb: 0,
-            fx: 0,
-            abs_diff: 0,
-            err: "",
-          },
-        ]);
-      case 1:
-        setSimpleiterationTableRows([
-          {
-            key: 0,
-            iteration: 0,
-            x_k: 0,
-            f_x_k: 0,
-            x_k_plus_one: 0,
-            phi_x_k: 0,
-            abs_diff: 0,
-            err: "",
-          },
-        ]);
-      case 2:
-        setNewtonTableRows([
-          {
-            key: 0,
-            iteration: 0,
-            x_k: 0,
-            f_x_k: 0,
-            f_prime_x_k: 0,
-            x_k_plus_one: 0,
-            abs_diff: 0,
-            err: "",
-          },
-        ]);
-    }
-  }, []);
+  const handleSave = async () => {
+    console.log(solutionFile);
+    saveObjectToFile(solutionFile, "result.json");
+  };
 
   return (
     <>
@@ -485,22 +491,33 @@ const LinearEquationPage = () => {
                     className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     type="number"
                     name="estimate"
+                    step={0.01}
                     value={formData.estimate}
                     onChange={handleChange}
                   />
                 </label>
-                <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
-                  Method ID:
-                  <input
-                    className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    type="number"
-                    name="method_id"
-                    min={0}
-                    max={2}
-                    value={formData.method_id}
-                    onChange={handleChange}
-                  />
-                </label>
+
+                <div className="grid grid-cols-2 gap-y-4 gap-x-4 col-span-2 text-md font-medium leading-6 text-gray-900 items-center">
+                  <label className="grid text-md font-medium leading-6 text-gray-900">
+                    Method ID:
+                    <input
+                      className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      name="method_id"
+                      min={0}
+                      max={3}
+                      value={formData.method_id}
+                      onChange={handleChange}
+                    />
+                  </label>
+                  <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
+                    0. Half division <br />
+                    1. Simple iteration
+                    <br />
+                    2. Newton <br />
+                    3. Secant
+                  </p>
+                </div>
                 <div className="mt-2 flex items-center justify-end gap-x-6">
                   <button
                     type="submit"
@@ -568,6 +585,14 @@ const LinearEquationPage = () => {
             <h1 className="text-2xl font-semibold leading-7 text-gray-900 mt-5">
               Решение
             </h1>
+            <div className="mt-2 flex items-center justify-start gap-x-6">
+              <button
+                onClick={handleSave}
+                className="rounded-md bg-indigo-600 px-3 py-2 text-md font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                Скачать
+              </button>
+            </div>
             {solution && solution.err && (
               <div
                 className="mt-10 grid-cols-2 gap-x-6 gap-y-8 justify-items-center justify-center bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4"
@@ -718,12 +743,45 @@ const LinearEquationPage = () => {
                 </div>
               )}
 
+              {formData.method_id == 3 && (
+                <div className="col-span-2 w-full">
+                  <label className="block text-md font-medium leading-6 text-gray-900">
+                    Уточнение корня уравнения методом секущих
+                  </label>
+                  <div className="py-2">
+                    <Table aria-label="Example table with dynamic content">
+                      <TableHeader columns={secantTableColumns}>
+                        {(column) => (
+                          <TableColumn key={column.key}>
+                            {column.label}
+                          </TableColumn>
+                        )}
+                      </TableHeader>
+                      <TableBody items={secantTableRows}>
+                        {(item: any) => (
+                          <TableRow key={item.key}>
+                            {(columnKey) => (
+                              <TableCell>
+                                {getKeyValue(item, columnKey)}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
               <div className="col-span-2 w-full">
-                <Scatter options={options} data={data} />
+                <CustomChart
+                  start={formData.intervalMin}
+                  finish={formData.intervalMax}
+                  index={formData.eq_id}
+                />
               </div>
             </div>
           </div>
-
           <div id="gd" className="sm:col-span-6 col-span-1"></div>
         </div>
       </div>

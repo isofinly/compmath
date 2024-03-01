@@ -14,6 +14,7 @@ pub enum MethodType {
     HalfDivision,
     Iteration,
     Newton,
+    Secant,
 }
 
 pub struct Solver<'a> {
@@ -39,6 +40,15 @@ impl Equation {
             Self::Equation2 => x.powi(3) - x + 4.0,
             Self::Equation3 => x.exp() - 5.0,
             Self::Equation4 => (2.0 * x).sin() + PI / 4.0,
+        }
+    }
+
+    fn get_function_index(&self) -> usize {
+        match self {
+            Self::Equation1 => 1,
+            Self::Equation2 => 2,
+            Self::Equation3 => 3,
+            Self::Equation4 => 4,
         }
     }
 
@@ -75,6 +85,11 @@ impl<'a> Solver<'a> {
             MethodType::HalfDivision => self.solve_half_division(left, right, estimate),
             MethodType::Iteration => self.solve_iteration(left, right, estimate),
             MethodType::Newton => self.solve_newton(left, right, estimate),
+            MethodType::Secant => {
+                let x0 = left;
+                let x1 = right;
+                self.solve_secant(x0, x1, estimate)
+            }
         }
     }
 
@@ -84,114 +99,115 @@ impl<'a> Solver<'a> {
         mut right: f64,
         estimate: f64,
     ) -> Json<serde_json::Value> {
-        if self.equation.get_value(left) * self.equation.get_value(right) >= 0.0 {
-            return Json(json!({"error": "No root found in the given interval."}));
-        }
-
-        if self.equation.get_value(left) * self.equation.get_value(right) > 0.0 {
-            return Json(json!({
-                "error": "На данном участке нет корней."
-            }));
-        }
-
         let mut steps = Vec::new();
-        let mut x = (left + right) / 2.0;
-        steps.push(self.create_step(left, right, x));
+        let mut x;
+        let og_left = left;
+        let og_right = right;
+        let og_estimate = estimate;
 
-        while (right - left).abs() > estimate {
-            self.n += 1;
-            let f_left = self.equation.get_value(left);
-            let fx = self.equation.get_value(x);
+        loop {
+            x = (left + right) / 2.0;
 
-            if f_left * fx > 0.0 {
+            steps.push(self.create_step(left, right, x));
+
+            if self.equation.get_value(left) * self.equation.get_value(x) > 0.0 {
                 left = x;
             } else {
                 right = x;
             }
-            x = (left + right) / 2.0;
-            steps.push(self.create_step(left, right, x));
-        }
 
-        let result = json!({
-            "result": {
-                "method_id": 0,
-                "root": x,
-                "function_value": self.equation.get_value(x),
-                "iterations": self.n + 1,
-                "steps": steps,
-                "err": ""
+            if (right - left).abs() < estimate {
+                let n = (estimate.log10().abs().ceil() as u32).max(1); // Ensure n is at least 1
+                let multiplier = 10f64.powi(n as i32);
+                let result_x = (x * multiplier).ceil() / multiplier;
+                let result_fx = (self.equation.get_value(x) * multiplier).ceil() / multiplier;
+
+                self.n += 1;
+
+                return Json(json!({
+                    "result": {
+                        "left": og_left,
+                        "right": og_right,
+                        "estimate": og_estimate,
+                        "eq_id": self.equation.get_function_index(),
+                        "method_id": 0,
+                        "root": result_x,
+                        "function_value": result_fx,
+                        "iterations": self.n,
+                        "steps": steps,
+                        "err": ""
+                    }
+                }));
             }
-        });
-        Json(result)
+            self.n += 1; // Increment the step counter if the loop continues
+        }
     }
 
     fn solve_iteration(&mut self, left: f64, right: f64, estimate: f64) -> Json<serde_json::Value> {
-        if self.equation.get_value(left) * self.equation.get_value(right) > 0.0 {
-            return Json(json!({"error": "На данном участке нет корней."}));
-        }
-
-        let parameter_lambda = -1.0
-            / self
-                .equation
-                .derivative(left, 1)
-                .max(self.equation.derivative(right, 1));
-        if self
+        let og_left = left;
+        let og_right = right;
+        let og_estimate = estimate;
+        let sigma = self
             .equation
-            .new_function_first_derivative(left, parameter_lambda)
+            .derivative(left, 1)
             .abs()
-            >= 1.0
-            || self
-                .equation
-                .new_function_first_derivative(right, parameter_lambda)
-                .abs()
-                >= 1.0
-        {
-            return Json(json!({
-                "error": "Метод не сходится. Нарушено достаточное условие сходимости метода.",
-                "phi_prime_a": self.equation.new_function_first_derivative(left, parameter_lambda),
-                "phi_prime_b": self.equation.new_function_first_derivative(right, parameter_lambda),
-            }));
-        }
+            .max(self.equation.derivative(right, 1).abs());
+        let x0 =
+            if self.equation.derivative(left, 1).abs() > self.equation.derivative(right, 1).abs() {
+                left
+            } else {
+                right
+            };
 
-        let x0 = if self.equation.get_value(right) * self.equation.derivative(right, 2) > 0.0 {
-            right
-        } else {
-            left
-        };
+        // Check for convergence condition, adapted from the C++ constructor logic
+        if 1.0 - self.equation.derivative(left, 1) / sigma >= 1.0
+            && 1.0 - self.equation.derivative(right, 1) / sigma >= 1.0
+        {
+            return Json(json!({"error": "Method does not converge"}));
+        }
 
         let mut x = x0;
         let mut steps = Vec::new();
 
         loop {
-            self.n += 1;
-            let x_next = self.equation.new_function(x, parameter_lambda);
+            let x_next = x - self.equation.get_value(x) / sigma;
+
             steps.push(json!({
                 "key": self.n,
                 "iteration": self.n,
                 "x_k": x,
-                "f_x_k": self.equation.get_value(x),
                 "x_k_plus_one": x_next,
-                "phi_x_k": self.equation.new_function(x, parameter_lambda),
+                "f_x_k": self.equation.get_value(x_next),
                 "abs_diff": (x - x_next).abs(),
                 "err": ""
             }));
 
-            if (x - x_next).abs() <= estimate {
-                break;
+            if (x_next - x).abs() < estimate {
+                let n = estimate.log10().abs().ceil() as u32;
+                let multiplier = 10f64.powi(n as i32);
+                let result_x = (x_next * multiplier).ceil() / multiplier;
+                let result_fx = (self.equation.get_value(x_next) * multiplier).ceil() / multiplier;
+
+                self.n += 1; // Increment the step counter
+
+                return Json(json!({
+                    "result": {
+                        "left": og_left,
+                        "right": og_right,
+                        "estimate": og_estimate,
+                        "eq_id": self.equation.get_function_index(),
+                        "method_id": 1,
+                        "root": result_x,
+                        "function_value": result_fx,
+                        "iterations": self.n,
+                        "steps": steps,
+                    }
+                }));
             }
 
             x = x_next;
+            self.n += 1; // Increment the step counter for the next iteration
         }
-
-        Json(json!({
-            "result": {
-                "method_id": 1,
-                "root": x,
-                "function_value": self.equation.get_value(x),
-                "iterations": self.n,
-                "steps": steps,
-            }
-        }))
     }
 
     fn solve_newton(&mut self, left: f64, right: f64, estimate: f64) -> Json<serde_json::Value> {
@@ -199,14 +215,17 @@ impl<'a> Solver<'a> {
             return Json(json!({"error": "На данном участке нет корней."}));
         }
 
+        let og_estimate = estimate;
+        let og_left = left;
+        let og_right = right;
+        let mut steps = Vec::new();
+        let mut x;
+
         let mut x0 = if self.equation.get_value(right) * self.equation.derivative(right, 1) > 0.0 {
             right
         } else {
             left
         };
-
-        let mut steps = Vec::new();
-        let mut x;
 
         loop {
             self.n += 1;
@@ -239,6 +258,10 @@ impl<'a> Solver<'a> {
 
         Json(json!({
             "result": {
+                "left": og_left,
+                "right": og_right,
+                "estimate": og_estimate,
+                "eq_id": self.equation.get_function_index(),
                 "method_id": 2,
                 "root": x,
                 "function_value": self.equation.get_value(x),
@@ -246,6 +269,55 @@ impl<'a> Solver<'a> {
                 "steps": steps,
             }
         }))
+    }
+    fn solve_secant(&mut self, mut x0: f64, mut x1: f64, estimate: f64) -> Json<serde_json::Value> {
+        let mut steps = Vec::new();
+        let og_left = x0;
+        let og_right = x1;
+        let og_estimate = estimate;
+        loop {
+            let x2 = x1
+                - self.equation.get_value(x1) * (x1 - x0)
+                    / (self.equation.get_value(x1) - self.equation.get_value(x0));
+            let abs_diff = (x2 - x1).abs();
+
+            steps.push(json!({
+                "key": self.n,
+                "iteration": self.n,
+                "x_k_1": x0,
+                "x_k": x1,
+                "x_k_plus_one": x2,
+                "f_x_k_plus_one": self.equation.get_value(x2),
+                "abs_diff": abs_diff,
+            }));
+
+            if abs_diff < estimate {
+                let n = estimate.log10().abs().ceil() as u32;
+                let multiplier = 10f64.powi(n as i32);
+                let result_x = (x2 * multiplier).ceil() / multiplier;
+                let result_fx = (self.equation.get_value(x2) * multiplier).ceil() / multiplier;
+
+                self.n += 1; // Increment the step counter
+
+                return Json(json!({
+                    "result": {
+                        "left": og_left,
+                        "right": og_right,
+                        "estimate": og_estimate,
+                        "eq_id": self.equation.get_function_index(),
+                        "method_id": 3,
+                        "root": result_x,
+                        "function_value": result_fx,
+                        "iterations": self.n,
+                        "steps": steps,
+                    }
+                }));
+            }
+
+            x0 = x1;
+            x1 = x2;
+            self.n += 1; // Increment the step counter for the next iteration
+        }
     }
 
     fn create_step(&self, a: f64, b: f64, x: f64) -> Value {
@@ -261,5 +333,118 @@ impl<'a> Solver<'a> {
             "abs_diff": (b - a).abs(),
             "err": ""
         })
+    }
+}
+
+/*
+ *
+ */
+
+pub enum SystemEquations {
+    EquationSystem1,
+    EquationSystem2,
+}
+
+impl SystemEquations {
+    pub fn new(number: u8) -> Self {
+        match number {
+            0 => Self::EquationSystem1,
+            1 => Self::EquationSystem2,
+            _ => panic!("Invalid equation number"),
+        }
+    }
+    fn get_value(&self, x: f64, y: f64) -> (f64, f64) {
+        match self {
+            SystemEquations::EquationSystem1 => {
+                // Example functions for demonstration
+                (x.powi(2) + y.powi(2) - 4.0, -3.0 * x.powi(2) + y)
+            }
+            SystemEquations::EquationSystem2 => {
+                // Another example
+                (
+                    0.1 * x.powi(2) + x + 0.2 * y.powi(2) - 0.3,
+                    0.2 * x.powi(2) + y + 0.1 * y * x - 0.7,
+                )
+            }
+        }
+    }
+}
+
+pub struct NewtonSystemMethod<'a> {
+    x0: f64,
+    y0: f64,
+    tolerance: f64,
+    equations: &'a SystemEquations,
+    counter: usize,
+}
+
+impl<'a> NewtonSystemMethod<'a> {
+    pub fn new(x0: f64, y0: f64, tolerance: f64, equations: &'a SystemEquations) -> Self {
+        Self { x0, y0, tolerance, equations, counter: 0 }
+    }
+
+    fn partial_derivatives(&self) -> ((f64, f64), (f64, f64)) {
+        let h = 0.0001;
+        let fx0_y0 = self.equations.get_value(self.x0, self.y0).0;
+        let fy0_y0 = self.equations.get_value(self.x0, self.y0).1;
+
+        let fx_h_y0 = self.equations.get_value(self.x0 + h, self.y0).0;
+        let fy_h_y0 = self.equations.get_value(self.x0 + h, self.y0).1;
+
+        let fx0_h_y0 = self.equations.get_value(self.x0, self.y0 + h).0;
+        let fy0_h_y0 = self.equations.get_value(self.x0, self.y0 + h).1;
+
+        let dxf = (fx_h_y0 - fx0_y0) / h;
+        let dyf = (fx0_h_y0 - fx0_y0) / h;
+
+        let dxg = (fy_h_y0 - fy0_y0) / h;
+        let dyg = (fy0_h_y0 - fy0_y0) / h;
+
+        ((dxf, dyf), (dxg, dyg))
+    }
+
+    pub fn solve(&mut self) -> Value {
+        let ((dxf, dyf), (dxg, dyg)) = self.partial_derivatives();
+
+        // Calculate the Jacobian determinant
+        let jacobian_determinant = dxf * dyg - dyf * dxg;
+
+        if jacobian_determinant == 0.0 {
+            return json!({"error": "Jacobian determinant is zero, system does not meet the sufficient condition for convergence"});
+        }
+
+        let (fx, fy) = self.equations.get_value(self.x0, self.y0);
+
+        let a = [[dxf, dyf], [dxg, dyg]];
+        let b = [-fx, -fy];
+        let roots = Self::solve_kramer(a, b);
+
+        let x1 = self.x0 + roots[0];
+        let y1 = self.y0 + roots[1];
+        let estimate = ((x1 - self.x0).powi(2) + (y1 - self.y0).powi(2)).sqrt();
+
+        if estimate < self.tolerance {
+            json!({
+                "x": x1,
+                "y": y1,
+                "iterations": self.counter,
+                "estimate": estimate,
+            })
+        } else {
+            self.x0 = x1;
+            self.y0 = y1;
+            self.counter += 1;
+            self.solve()
+        }
+    }
+
+    pub fn solve_kramer(a: [[f64; 2]; 2], b: [f64; 2]) -> [f64; 2] {
+        let d = a[0][0] * a[1][1] - a[1][0] * a[0][1];
+        let dx = b[0] * a[1][1] - b[1] * a[0][1];
+        let dy = a[0][0] * b[1] - a[1][0] * b[0];
+        if d == 0.0 {
+            panic!("Determinant is zero, system has no unique solution");
+        }
+        [dx / d, dy / d]
     }
 }

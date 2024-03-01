@@ -1,6 +1,3 @@
-use std::io::BufRead;
-use std::str;
-use std::panic;
 use graphul::{
     extract::Json,
     http::{utils::header::CONTENT_TYPE, Methods},
@@ -9,18 +6,21 @@ use graphul::{
 use multipart::server::Multipart;
 use regex::Regex;
 use serde::Deserialize;
+use std::io::BufRead;
+use std::panic;
+use std::str;
 
-use crate::compute::lab_two::{Equation, MethodType, Solver};
+use crate::compute::lab_two::{Equation, MethodType, NewtonSystemMethod, Solver, SystemEquations};
 
 #[derive(Debug, Deserialize)]
-struct ReqData {
+struct EquationReqData {
     eq_id: usize,
     interval: [f64; 2],
     estimate: f64,
     method_id: usize,
 }
 
-async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
+async fn calculate_equation_from_string(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body();
     let req_id;
     let interval;
@@ -31,7 +31,7 @@ async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
         return Json(serde_json::json!({ "error": "Empty string" }));
     }
 
-    match serde_json::from_str::<ReqData>(&str_ref) {
+    match serde_json::from_str::<EquationReqData>(&str_ref) {
         Ok(data) => {
             req_id = data.eq_id;
             interval = data.interval;
@@ -48,7 +48,7 @@ async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
         return Json(serde_json::json!({ "error": "Invalid equation id" }));
     }
 
-    if !(0..3).contains(&method_id) {
+    if !(0..4).contains(&method_id) {
         return Json(serde_json::json!({ "error": "Invalid method id" }));
     }
 
@@ -62,6 +62,7 @@ async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
         0 => Solver::new(&equation, MethodType::HalfDivision),
         1 => Solver::new(&equation, MethodType::Iteration),
         2 => Solver::new(&equation, MethodType::Newton),
+        3 => Solver::new(&equation, MethodType::Secant),
         _ => panic!("Invalid method id"),
     };
 
@@ -70,7 +71,7 @@ async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
     result
 }
 
-async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
+async fn calculate_equation_from_file(ctx: Context) -> Json<serde_json::Value> {
     let req_id;
     let interval;
     let estimate;
@@ -101,7 +102,7 @@ async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
         buffer.extend_from_slice(data);
     }
 
-    match serde_json::from_str::<ReqData>(str::from_utf8(&buffer).unwrap()) {
+    match serde_json::from_str::<EquationReqData>(str::from_utf8(&buffer).unwrap()) {
         Ok(data) => {
             req_id = data.eq_id;
             interval = data.interval;
@@ -118,7 +119,7 @@ async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
         return Json(serde_json::json!({ "error": "Invalid equation id" }));
     }
 
-    if !(0..2).contains(&method_id) {
+    if !(0..4).contains(&method_id) {
         return Json(serde_json::json!({ "error": "Invalid method id" }));
     }
 
@@ -132,6 +133,7 @@ async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
         0 => Solver::new(&equation, MethodType::HalfDivision),
         1 => Solver::new(&equation, MethodType::Iteration),
         2 => Solver::new(&equation, MethodType::Newton),
+        3 => Solver::new(&equation, MethodType::Secant),
         _ => return Json(serde_json::json!({ "error": "Invalid method id" })),
     };
 
@@ -140,13 +142,69 @@ async fn calculate_from_file(ctx: Context) -> Json<serde_json::Value> {
     result
 }
 
+#[derive(Debug, Deserialize)]
+struct SystemEquationsReqData {
+    x0: f64,
+    y0: f64,
+    tolerance: f64,
+    eq_id: usize,
+    estimate: f64,
+}
+
+async fn calculate_system_from_string(ctx: Context) -> Json<serde_json::Value> {
+    let str_ref = ctx.body();
+    let req_id;
+    let estimate;
+    let x0;
+    let y0;
+    let tolerance;
+
+    if str_ref.is_empty() {
+        return Json(serde_json::json!({ "error": "Empty string" }));
+    }
+
+    match serde_json::from_str::<EquationReqData>(&str_ref) {
+        Ok(data) => {
+            req_id = data.eq_id;
+            estimate = data.estimate;
+            x0 = data.interval[0];
+            y0 = data.interval[1];
+            tolerance = data.estimate;
+        }
+        Err(e) => {
+            eprintln!("Failed to parse JSON: {}", e);
+            return Json(serde_json::json!({ "error": "Failed to parse JSON" }));
+        }
+    }
+    if !(0..4).contains(&req_id) {
+        return Json(serde_json::json!({ "error": "Invalid system of equations id" }));
+    }
+
+    let equations = SystemEquations::new(req_id.try_into().unwrap());
+
+    let mut method = NewtonSystemMethod::new(x0, y0, tolerance, &equations);
+
+    let result = method.solve();
+
+    Json(result)
+
+}
+async fn calculate_system_from_file(ctx: Context) -> Json<serde_json::Value> {
+    todo!()
+}
+
 pub async fn routes() -> Graphul {
     let mut router = Graphul::router();
 
-    let mut lin_eq_group = router.group("nonlinear_equations");
+    let mut non_lin_eq_group = router.group("nonlinear_equations");
 
-    lin_eq_group.post("/string", calculate_from_string);
-    lin_eq_group.post("/file", calculate_from_file);
+    non_lin_eq_group.post("/string", calculate_equation_from_string);
+    non_lin_eq_group.post("/file", calculate_equation_from_file);
+
+    let mut non_lin_eqs_group = router.group("system_nonlinear_equations");
+
+    non_lin_eqs_group.post("/string", calculate_system_from_string);
+    non_lin_eqs_group.post("/file", calculate_system_from_file);
 
     router
 }
