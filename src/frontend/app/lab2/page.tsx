@@ -8,7 +8,7 @@ import {
   Legend,
 } from "chart.js";
 import { Scatter } from "react-chartjs-2";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   TableHeader,
@@ -18,21 +18,120 @@ import {
   TableCell,
   getKeyValue,
 } from "@nextui-org/react";
+
 const LinearEquationPage = () => {
   const [solution, setSolution] = useState<any>("");
   const [value, setValue] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState("");
   const [rows, setRows] = useState(2);
+  const [halfdivisonTableRows, setHalfdivisonTableRows] = useState<any>([
+    {
+      key: 0,
+      iteration: 0,
+      a: 0,
+      b: 0,
+      x: 0,
+      fa: 0,
+      fb: 0,
+      fx: 0,
+      abs_diff: 0,
+      err: "",
+    },
+  ]);
+  const [simpleiterationTableRows, setSimpleiterationTableRows] = useState<any>(
+    [
+      {
+        key: 0,
+        iteration: 0,
+        x_k: 0,
+        f_x_k: 0,
+        x_k_plus_one: 0,
+        phi_x_k: 0,
+        abs_diff: 0,
+        err: "",
+      },
+    ]
+  );
+  const [newtonTableRows, setNewtonTableRows] = useState<any>([
+    {
+      key: 0,
+      iteration: 0,
+      x_k: 0,
+      f_x_k: 0,
+      f_prime_x_k: 0,
+      x_k_plus_one: 0,
+      abs_diff: 0,
+      err: "",
+    },
+  ]);
+
+  const [formData, setFormData] = useState({
+    eq_id: 0,
+    interval: [],
+    intervalMin: 0,
+    intervalMax: 0,
+    estimate: 0,
+    method_id: 0,
+  });
+
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+
+    if (name === "method_id") {
+      setHalfdivisonTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          a: 0,
+          b: 0,
+          x: 0,
+          fa: 0,
+          fb: 0,
+          fx: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+
+      setSimpleiterationTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          x_k: 0,
+          f_x_k: 0,
+          x_k_plus_one: 0,
+          phi_x_k: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+
+      setNewtonTableRows([
+        {
+          key: 0,
+          iteration: 0,
+          x_k: 0,
+          f_x_k: 0,
+          f_prime_x_k: 0,
+          x_k_plus_one: 0,
+          abs_diff: 0,
+          err: "",
+        },
+      ]);
+    }
+    setFormData({
+      ...formData,
+      [name]: Number(value),
+    });
+  };
 
   const options = {
     scales: {
       y: {
         title: {
           display: true,
-          text: solution
-            ? `Вектор погрешности 10^-${getMaxZeros(solution)}`
-            : "Вектор погрешности",
+          text: solution ? "Вектор погрешности" : "Вектор погрешности",
         },
       },
       x: {
@@ -57,11 +156,100 @@ const LinearEquationPage = () => {
     datasets: [
       {
         label: "Вектора",
-        data: solution && convertSolutionToPlotData(solution),
+        data: [],
         backgroundColor: "rgba(255, 99, 132, 1)",
       },
     ],
   };
+
+  const halfdivisonTableColumns = [
+    {
+      key: "iteration",
+      label: "№ шага",
+    },
+    {
+      key: "a",
+      label: "a",
+    },
+    {
+      key: "b",
+      label: "b",
+    },
+    {
+      key: "x",
+      label: "x",
+    },
+    {
+      key: "fa",
+      label: "f(a)",
+    },
+    {
+      key: "fb",
+      label: "f(b)",
+    },
+    {
+      key: "fx",
+      label: "f(x)",
+    },
+    {
+      key: "abs_diff",
+      label: "|a-b|",
+    },
+  ];
+
+  const simpleiterationTableColumns = [
+    {
+      label: "№ шага",
+      key: "iteration",
+    },
+    {
+      label: "x_k",
+      key: "x_k",
+    },
+    {
+      label: "f(x_k)",
+      key: "f_x_k",
+    },
+    {
+      label: "x_k+1",
+      key: "x_k_plus_one",
+    },
+    {
+      label: "phi(x_k)",
+      key: "phi_x_k",
+    },
+    {
+      label: "|x_k-x_{k+1}|",
+      key: "abs_diff",
+    },
+  ];
+
+  const newtonTableColumns = [
+    {
+      label: "№ шага",
+      key: "iteration",
+    },
+    {
+      label: "x_k",
+      key: "x_k",
+    },
+    {
+      label: "f(x_k)",
+      key: "f_x_k",
+    },
+    {
+      label: "f'(x_k)",
+      key: "f_prime_x_k",
+    },
+    {
+      label: "x_k+1",
+      key: "x_k_plus_one",
+    },
+    {
+      label: "|x_k-x_{k+1}|",
+      key: "abs_diff",
+    },
+  ];
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -79,23 +267,30 @@ const LinearEquationPage = () => {
     event.preventDefault();
 
     setSolution({
-      sol: [],
-      acc: [],
-      c: [],
-      mtrx: [],
       err: "",
-      iter: "",
+      function_value: 0,
+      iterations: 0,
+      root: 0,
+      steps: [],
     });
+
     try {
+      const { intervalMin, intervalMax, eq_id, estimate, method_id, ...rest } =
+        formData;
+      const interval: number[] = [intervalMin, intervalMax];
+
       const response = await fetch(
-        "http://127.0.0.1:8000/linear_equation/string",
+        "http://127.0.0.1:8000/nonlinear_equations/string",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            data: value,
+            eq_id,
+            estimate,
+            method_id,
+            interval,
           }),
         }
       );
@@ -106,7 +301,15 @@ const LinearEquationPage = () => {
         setError(data.error);
         return;
       }
-      setSolution(data);
+      setSolution(data.result);
+      switch (method_id) {
+        case 0:
+          setHalfdivisonTableRows(data?.result?.steps);
+        case 1:
+          setSimpleiterationTableRows(data?.result?.steps);
+        case 2:
+          setNewtonTableRows(data?.result?.steps);
+      }
     } catch (error) {
       console.error(error);
       handleOpen();
@@ -118,20 +321,21 @@ const LinearEquationPage = () => {
     event.preventDefault();
 
     setSolution({
-      sol: [],
-      acc: [],
-      c: [],
-      mtrx: [],
       err: "",
-      iter: "",
+      function_value: 0,
+      iterations: 0,
+      root: 0,
+      steps: [],
     });
+
     try {
-      const formData = new FormData(event.currentTarget);
+      const formMultipartData = new FormData(event.currentTarget);
+
       const response = await fetch(
-        "http://127.0.0.1:8000/linear_equation/file",
+        "http://127.0.0.1:8000/nonlinear_equations/file",
         {
           method: "POST",
-          body: formData,
+          body: formMultipartData,
         }
       );
       const data = await response.json();
@@ -141,7 +345,26 @@ const LinearEquationPage = () => {
         setError(data.error);
         return;
       }
-      setSolution(data);
+      console.log(data.result.method_id);
+      switch (data.result.method_id) {
+        case 0: {
+          formData.method_id = 0;
+          setHalfdivisonTableRows(data?.result?.steps);
+          break;
+        }
+        case 1: {
+          formData.method_id = 1;
+          setSimpleiterationTableRows(data?.result?.steps);
+          break;
+        }
+        case 2: {
+          formData.method_id = 2;
+          setNewtonTableRows(data?.result?.steps);
+          break;
+        }
+      }
+
+      setSolution(data.result);
     } catch (error) {
       console.error(error);
       handleOpen();
@@ -149,151 +372,51 @@ const LinearEquationPage = () => {
     }
   };
 
-  function getMaxZeros(solution: any) {
-    const max = Math.max(...solution.acc);
-    const zeros = Math.abs(Math.floor(Math.log10(max))) - 1;
-    return zeros;
-  }
-
-  function convertSolutionToPlotData(solution: any) {
-    const data = [];
-    if (!solution) return;
-    for (let i = 0; i < solution.sol.length; i++) {
-      data.push({
-        x: solution.sol[i],
-        y: solution.acc[i] * 10 ** getMaxZeros(solution),
-        // y: solution.acc[i],
-      });
+  useEffect(() => {
+    switch (formData.method_id) {
+      case 0:
+        setHalfdivisonTableRows([
+          {
+            key: 0,
+            iteration: 0,
+            a: 0,
+            b: 0,
+            x: 0,
+            fa: 0,
+            fb: 0,
+            fx: 0,
+            abs_diff: 0,
+            err: "",
+          },
+        ]);
+      case 1:
+        setSimpleiterationTableRows([
+          {
+            key: 0,
+            iteration: 0,
+            x_k: 0,
+            f_x_k: 0,
+            x_k_plus_one: 0,
+            phi_x_k: 0,
+            abs_diff: 0,
+            err: "",
+          },
+        ]);
+      case 2:
+        setNewtonTableRows([
+          {
+            key: 0,
+            iteration: 0,
+            x_k: 0,
+            f_x_k: 0,
+            f_prime_x_k: 0,
+            x_k_plus_one: 0,
+            abs_diff: 0,
+            err: "",
+          },
+        ]);
     }
-    return data;
-  }
-
-  const halfdivisonTableRows = [
-    {
-      key: "1",
-      number: 1,
-      a: 0.123,
-      b: 0.123,
-      x: 0.123,
-      f_a: 0.123,
-      f_b: 0.123,
-      f_x: 0.123,
-      abs_delta: 0.123,
-    },
-  ];
-
-  const halfdivisonTableColumns = [
-    {
-      key: "number",
-      label: "№ шага",
-    },
-    {
-      key: "a",
-      label: "a",
-    },
-    {
-      key: "b",
-      label: "b",
-    },
-    {
-      key: "x",
-      label: "x",
-    },
-    {
-      key: "f_a",
-      label: "f(a)",
-    },
-    {
-      key: "f_b",
-      label: "f(b)",
-    },
-    {
-      key: "f_x",
-      label: "f(x)",
-    },
-    {
-      key: "abs_delta",
-      label: "|a-b|",
-    },
-  ];
-
-  const newtonTableRows = [
-    {
-      key: "1",
-      number: 1,
-      xk: 0.123,
-      f_xk: 0.123,
-      f_prime_xk: 0.123,
-      xk_plus_one: 0.123,
-      abs_delta_xk: 0.123,
-    },
-  ];
-
-  const newtonTableColumns = [
-    {
-      label: "№ шага",
-      key: "number",
-    },
-    {
-      label: "x_k",
-      key: "xk",
-    },
-    {
-      label: "f(x_k)",
-      key: "f_xk",
-    },
-    {
-      label: "f'(x_k)",
-      key: "f_prime_xk",
-    },
-    {
-      label: "x_k+1",
-      key: "xk_plus_one",
-    },
-    {
-      label: "|x_k-x_{k+1}|",
-      key: "abs_delta_xk",
-    },
-  ];
-
-  const simpleiterationTableRows = [
-    {
-      key: "1",
-      number: 1,
-      xk: 0.123,
-      f_xk: 0.123,
-      f_xk_plus_one: 0.123,
-      phi_xk: 0.123,
-      abs_delta_xk: 0.123,
-    },
-  ];
-
-  const simpleiterationTableColumns = [
-    {
-      label: "№ шага",
-      key: "number",
-    },
-    {
-      label: "x_k",
-      key: "xk",
-    },
-    {
-      label: "f(x_k)",
-      key: "f_xk",
-    },
-    {
-      label: "x_k+1",
-      key: "f_xk_plus_one",
-    },
-    {
-      label: "phi(x_k)",
-      key: "phi_xk",
-    },
-    {
-      label: "|x_k-x_{k+1}|",
-      key: "abs_delta_xk",
-    },
-  ];
+  }, []);
 
   return (
     <>
@@ -312,17 +435,72 @@ const LinearEquationPage = () => {
               Ручной ввод параметров
             </label>
             <div className="mt-2">
-              <form onSubmit={handleSubmitString}>
-                <textarea
-                  name="data"
-                  placeholder="1 8 \n
-                  0,001
-                  "
-                  rows={3}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className="block w-full rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                />
+              <form
+                onSubmit={handleSubmitString}
+                className="grid grid-cols-2 gap-y-4"
+              >
+                <div className="grid grid-cols-2 gap-y-4 gap-x-4 col-span-2 text-md font-medium leading-6 text-gray-900 items-center">
+                  <label className="grid text-md font-medium leading-6 text-gray-900">
+                    Equation ID:
+                    <input
+                      className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      name="eq_id"
+                      min={0}
+                      max={3}
+                      value={formData.eq_id}
+                      onChange={handleChange}
+                    />
+                  </label>
+                  <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
+                    0. 1.62x³ - 8.15x² + 4.39x + 4.29 = 0 <br />
+                    1. x³ - x + 4 = 0 <br />
+                    2. exp(x) - 5 = 0 <br />
+                    3. sin(2*x) + π/4 = 0
+                  </p>
+                </div>
+                <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
+                  Interval min:
+                  <input
+                    className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    type="number"
+                    name="intervalMin"
+                    value={formData.intervalMin}
+                    onChange={handleChange}
+                  />
+                </label>
+                <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
+                  Interval max:
+                  <input
+                    className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    type="number"
+                    name="intervalMax"
+                    value={formData.intervalMax}
+                    onChange={handleChange}
+                  />
+                </label>
+                <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
+                  Estimate:
+                  <input
+                    className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    type="number"
+                    name="estimate"
+                    value={formData.estimate}
+                    onChange={handleChange}
+                  />
+                </label>
+                <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
+                  Method ID:
+                  <input
+                    className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    type="number"
+                    name="method_id"
+                    min={0}
+                    max={2}
+                    value={formData.method_id}
+                    onChange={handleChange}
+                  />
+                </label>
                 <div className="mt-2 flex items-center justify-end gap-x-6">
                   <button
                     type="submit"
@@ -409,7 +587,7 @@ const LinearEquationPage = () => {
                     type="text"
                     name="iter"
                     id="iter"
-                    value={solution ? solution.iter : ""}
+                    value={solution ? solution.iterations : "None"}
                     disabled
                     className="px-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   />
@@ -425,7 +603,7 @@ const LinearEquationPage = () => {
                       type="text"
                       name="iter"
                       id="iter"
-                      value={"aboba"}
+                      value={solution ? solution.root : "None"}
                       disabled
                       className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
@@ -442,7 +620,7 @@ const LinearEquationPage = () => {
                       type="text"
                       name="iter"
                       id="iter"
-                      value={"aboba"}
+                      value={solution ? solution.function_value : "None"}
                       disabled
                       className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
@@ -450,89 +628,95 @@ const LinearEquationPage = () => {
                 </div>
               </div>
 
-              <div className="col-span-2 w-full">
-                <label className="block text-md font-medium leading-6 text-gray-900">
-                  Уточнение корня уравнения методом половинного деления
-                </label>
-                <div className="py-2">
-                  <Table aria-label="Example table with dynamic content">
-                    <TableHeader columns={halfdivisonTableColumns}>
-                      {(column) => (
-                        <TableColumn key={column.key}>
-                          {column.label}
-                        </TableColumn>
-                      )}
-                    </TableHeader>
-                    <TableBody items={halfdivisonTableRows}>
-                      {(item) => (
-                        <TableRow key={item.key}>
-                          {(columnKey) => (
-                            <TableCell>
-                              {getKeyValue(item, columnKey)}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+              {formData.method_id == 0 && (
+                <div className="col-span-2 w-full">
+                  <label className="block text-md font-medium leading-6 text-gray-900">
+                    Уточнение корня уравнения методом половинного деления
+                  </label>
+                  <div className="py-2">
+                    <Table aria-label="Example table with dynamic content">
+                      <TableHeader columns={halfdivisonTableColumns}>
+                        {(column) => (
+                          <TableColumn key={column.key}>
+                            {column.label}
+                          </TableColumn>
+                        )}
+                      </TableHeader>
+                      <TableBody items={halfdivisonTableRows}>
+                        {(item: any) => (
+                          <TableRow key={item.key}>
+                            {(columnKey) => (
+                              <TableCell>
+                                {getKeyValue(item, columnKey)}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="col-span-2 w-full">
-                <label className="block text-md font-medium leading-6 text-gray-900">
-                  Уточнение корня уравнения методом Ньютона
-                </label>
-                <div className="py-2">
-                  <Table aria-label="Example table with dynamic content">
-                    <TableHeader columns={newtonTableColumns}>
-                      {(column) => (
-                        <TableColumn key={column.key}>
-                          {column.label}
-                        </TableColumn>
-                      )}
-                    </TableHeader>
-                    <TableBody items={newtonTableRows}>
-                      {(item) => (
-                        <TableRow key={item.key}>
-                          {(columnKey) => (
-                            <TableCell>
-                              {getKeyValue(item, columnKey)}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+              {formData.method_id == 1 && (
+                <div className="col-span-2 w-full">
+                  <label className="block text-md font-medium leading-6 text-gray-900">
+                    Уточнение корня уравнения методом простой итерации
+                  </label>
+                  <div className="py-2">
+                    <Table aria-label="Example table with dynamic content">
+                      <TableHeader columns={simpleiterationTableColumns}>
+                        {(column) => (
+                          <TableColumn key={column.key}>
+                            {column.label}
+                          </TableColumn>
+                        )}
+                      </TableHeader>
+                      <TableBody items={simpleiterationTableRows}>
+                        {(item: any) => (
+                          <TableRow key={item.key}>
+                            {(columnKey) => (
+                              <TableCell>
+                                {getKeyValue(item, columnKey)}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="col-span-2 w-full">
-                <label className="block text-md font-medium leading-6 text-gray-900">
-                  Уточнение корня уравнения методом простой итерации
-                </label>
-                <div className="py-2">
-                  <Table aria-label="Example table with dynamic content">
-                    <TableHeader columns={simpleiterationTableColumns}>
-                      {(column) => (
-                        <TableColumn key={column.key}>
-                          {column.label}
-                        </TableColumn>
-                      )}
-                    </TableHeader>
-                    <TableBody items={simpleiterationTableRows}>
-                      {(item) => (
-                        <TableRow key={item.key}>
-                          {(columnKey) => (
-                            <TableCell>
-                              {getKeyValue(item, columnKey)}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+              {formData.method_id == 2 && (
+                <div className="col-span-2 w-full">
+                  <label className="block text-md font-medium leading-6 text-gray-900">
+                    Уточнение корня уравнения методом Ньютона
+                  </label>
+                  <div className="py-2">
+                    <Table aria-label="Example table with dynamic content">
+                      <TableHeader columns={newtonTableColumns}>
+                        {(column) => (
+                          <TableColumn key={column.key}>
+                            {column.label}
+                          </TableColumn>
+                        )}
+                      </TableHeader>
+                      <TableBody items={newtonTableRows}>
+                        {(item: any) => (
+                          <TableRow key={item.key}>
+                            {(columnKey) => (
+                              <TableCell>
+                                {getKeyValue(item, columnKey)}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="col-span-2 w-full">
                 <Scatter options={options} data={data} />

@@ -25,10 +25,10 @@ pub struct Solver<'a> {
 impl Equation {
     pub fn new(number: u8) -> Self {
         match number {
-            1 => Self::Equation1,
-            2 => Self::Equation2,
-            3 => Self::Equation3,
-            4 => Self::Equation4,
+            0 => Self::Equation1,
+            1 => Self::Equation2,
+            2 => Self::Equation3,
+            3 => Self::Equation4,
             _ => panic!("Invalid equation number"),
         }
     }
@@ -114,6 +114,7 @@ impl<'a> Solver<'a> {
 
         let result = json!({
             "result": {
+                "method_id": 0,
                 "root": x,
                 "function_value": self.equation.get_value(x),
                 "iterations": self.n + 1,
@@ -165,6 +166,7 @@ impl<'a> Solver<'a> {
             self.n += 1;
             let x_next = self.equation.new_function(x, parameter_lambda);
             steps.push(json!({
+                "key": self.n,
                 "iteration": self.n,
                 "x_k": x,
                 "f_x_k": self.equation.get_value(x),
@@ -183,6 +185,7 @@ impl<'a> Solver<'a> {
 
         Json(json!({
             "result": {
+                "method_id": 1,
                 "root": x,
                 "function_value": self.equation.get_value(x),
                 "iterations": self.n,
@@ -218,6 +221,7 @@ impl<'a> Solver<'a> {
             x = x0 - (f_x0 / df_x0);
 
             steps.push(json!({
+                "key": self.n,
                 "iteration": self.n,
                 "x_k": x0,
                 "f_x_k": f_x0,
@@ -235,6 +239,7 @@ impl<'a> Solver<'a> {
 
         Json(json!({
             "result": {
+                "method_id": 2,
                 "root": x,
                 "function_value": self.equation.get_value(x),
                 "iterations": self.n,
@@ -245,6 +250,7 @@ impl<'a> Solver<'a> {
 
     fn create_step(&self, a: f64, b: f64, x: f64) -> Value {
         json!({
+            "key": self.n,
             "iteration": self.n,
             "a": a,
             "b": b,

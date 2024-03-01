@@ -44,11 +44,11 @@ async fn calculate_from_string(ctx: Context) -> Json<serde_json::Value> {
         }
     }
 
-    if !(0..3).contains(&req_id) {
+    if !(0..4).contains(&req_id) {
         return Json(serde_json::json!({ "error": "Invalid equation id" }));
     }
 
-    if !(0..2).contains(&method_id) {
+    if !(0..3).contains(&method_id) {
         return Json(serde_json::json!({ "error": "Invalid method id" }));
     }
 
