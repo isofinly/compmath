@@ -63,16 +63,6 @@ impl Equation {
             _ => panic!("Unsupported derivative order"),
         }
     }
-
-    #[allow(dead_code)]
-    fn new_function(&self, x: f64, parameter_lambda: f64) -> f64 {
-        x + parameter_lambda * self.get_value(x)
-    }
-
-    #[allow(dead_code)]
-    fn new_function_first_derivative(&self, x: f64, parameter_lambda: f64) -> f64 {
-        1.0 + parameter_lambda * self.derivative(x, 1)
-    }
 }
 
 impl<'a> Solver<'a> {
@@ -163,7 +153,7 @@ impl<'a> Solver<'a> {
                 right
             };
 
-        // Check for convergence condition, adapted from the C++ constructor logic
+        // Check for convergence condition
         if 1.0 - self.equation.derivative(left, 1) / sigma >= 1.0
             && 1.0 - self.equation.derivative(right, 1) / sigma >= 1.0
         {
@@ -201,7 +191,7 @@ impl<'a> Solver<'a> {
                 let result_x = (x_next * multiplier).ceil() / multiplier;
                 let result_fx = (self.equation.get_value(x_next) * multiplier).ceil() / multiplier;
 
-                self.n += 1; // Increment the step counter
+                self.n += 1;
 
                 return Json(json!({
                     "result": {
@@ -218,9 +208,9 @@ impl<'a> Solver<'a> {
                 }));
             }
 
-            res = (x_next - x).abs(); // Update `res` with the current difference for the next iteration
+            res = (x_next - x).abs(); 
             x = x_next;
-            self.n += 1; // Increment the step counter for the next iteration
+            self.n += 1;
         }
     }
 
@@ -331,7 +321,7 @@ impl<'a> Solver<'a> {
 
             x0 = x1;
             x1 = x2;
-            self.n += 1; // Increment the step counter for the next iteration
+            self.n += 1; 
         }
     }
 
@@ -351,14 +341,18 @@ impl<'a> Solver<'a> {
     }
 }
 
-/*
- *
- */
-
 pub enum SystemEquations {
     EquationSystem1,
     EquationSystem2,
     EquationSystem3,
+}
+
+pub struct NewtonSystemMethod<'a> {
+    x0: f64,
+    y0: f64,
+    tolerance: f64,
+    equations: &'a SystemEquations,
+    counter: usize,
 }
 
 impl SystemEquations {
@@ -387,14 +381,6 @@ impl SystemEquations {
             Self::EquationSystem3 => 3 - 1,
         }
     }
-}
-
-pub struct NewtonSystemMethod<'a> {
-    x0: f64,
-    y0: f64,
-    tolerance: f64,
-    equations: &'a SystemEquations,
-    counter: usize,
 }
 
 impl<'a> NewtonSystemMethod<'a> {
