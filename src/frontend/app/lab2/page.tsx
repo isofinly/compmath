@@ -446,43 +446,6 @@ const LinearEquationPage = () => {
     saveObjectToFile(solutionFile, "result.json");
   };
 
-  // useEffect(() => {
-  //   switch (formData.method_id) {
-  //     case 0: {
-  //       setTimeout(() => {
-  //         const elt = document.getElementById("calculator");
-  //         const calculator = Desmos.GraphingCalculator(elt);
-  //         calculator.setExpression({ id: "graph1", latex: "y=x^2 + y^2 - 4" });
-  //         calculator.setExpression({ id: "graph2", latex: "y=3x^2" });
-
-  //         var dcgWrappers = document.querySelectorAll(".dcg-wrapper");
-  //         if (dcgWrappers.length > 1) {
-  //           for (var i = 1; i < dcgWrappers.length; i++) {
-  //             dcgWrappers[i].parentNode.removeChild(dcgWrappers[i]);
-  //           }
-  //         }
-  //       }, 1000);
-  //       break;
-  //     }
-  //     case 1: {
-  //       setTimeout(() => {
-  //         const elt = document.getElementById("calculator");
-  //         const calculator = Desmos.GraphingCalculator(elt);
-  //         calculator.setExpression({ id: "graph1", latex: "y=x^2" });
-  //         calculator.setExpression({ id: "graph2", latex: "y=6x^2" });
-
-  //         var dcgWrappers = document.querySelectorAll(".dcg-wrapper");
-  //         if (dcgWrappers.length > 1) {
-  //           for (var i = 1; i < dcgWrappers.length; i++) {
-  //             dcgWrappers[i].parentNode.removeChild(dcgWrappers[i]);
-  //           }
-  //         }
-  //       }, 1000);
-  //       break;
-  //     }
-  //   }
-
-  // },[formData.eq_id])
 
   return (
     <>
@@ -552,7 +515,7 @@ const LinearEquationPage = () => {
                   )}
                 </div>
                 <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
-                  {isSytemsOpen ? "starting x" : "Interval max"}
+                  {isSytemsOpen ? "starting x" : "Interval min"}
                   <input
                     className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     type="number"
