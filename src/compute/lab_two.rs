@@ -46,10 +46,10 @@ impl Equation {
 
     fn get_function_index(&self) -> usize {
         match self {
-            Self::Equation1 => 1-1,
-            Self::Equation2 => 2-1,
-            Self::Equation3 => 3-1,
-            Self::Equation4 => 4-1,
+            Self::Equation1 => 1 - 1,
+            Self::Equation2 => 2 - 1,
+            Self::Equation3 => 3 - 1,
+            Self::Equation4 => 4 - 1,
         }
     }
 
@@ -63,10 +63,13 @@ impl Equation {
             _ => panic!("Unsupported derivative order"),
         }
     }
+
+    #[allow(dead_code)]
     fn new_function(&self, x: f64, parameter_lambda: f64) -> f64 {
         x + parameter_lambda * self.get_value(x)
     }
 
+    #[allow(dead_code)]
     fn new_function_first_derivative(&self, x: f64, parameter_lambda: f64) -> f64 {
         1.0 + parameter_lambda * self.derivative(x, 1)
     }
@@ -370,15 +373,18 @@ impl SystemEquations {
     fn get_value(&self, x: f64, y: f64) -> (f64, f64) {
         match self {
             SystemEquations::EquationSystem1 => (x.powi(2) + y.powi(2) - 4.0, -3.0 * x.powi(2) + y),
-            SystemEquations::EquationSystem2 => (x.powi(2)+x-y.powi(2)-0.15, x.powi(2)-y+y.powi(2)+0.17),
-            SystemEquations::EquationSystem3 => (2.0 * y - (x+1.0).cos(), x + y.sin() + 0.4),
+            SystemEquations::EquationSystem2 => (
+                x.powi(2) + x - y.powi(2) - 0.15,
+                x.powi(2) - y + y.powi(2) + 0.17,
+            ),
+            SystemEquations::EquationSystem3 => (2.0 * y - (x + 1.0).cos(), x + y.sin() + 0.4),
         }
     }
     fn get_function_index(&self) -> usize {
         match self {
-            Self::EquationSystem1 => 1-1,
-            Self::EquationSystem2 => 2-1,
-            Self::EquationSystem3 => 3-1,
+            Self::EquationSystem1 => 1 - 1,
+            Self::EquationSystem2 => 2 - 1,
+            Self::EquationSystem3 => 3 - 1,
         }
     }
 }

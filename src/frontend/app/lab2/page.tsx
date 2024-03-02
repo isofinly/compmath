@@ -283,7 +283,7 @@ const LinearEquationPage = () => {
 
   const handleSystemChange = () => {
     if (isSytemsOpen) {
-      location.reload()
+      location.reload();
     } else {
       setIsSystemsOpen(true);
     }
@@ -371,7 +371,7 @@ const LinearEquationPage = () => {
       err: "",
       function_value: 0,
       iterations: 0,
-      error_value: 0, 
+      error_value: 0,
       root: 0,
       x: 0,
       y: 0,

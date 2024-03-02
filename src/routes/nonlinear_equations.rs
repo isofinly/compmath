@@ -6,7 +6,6 @@ use graphul::{
 use multipart::server::Multipart;
 use regex::Regex;
 use serde::Deserialize;
-use serde_json::json;
 use std::io::BufRead;
 use std::panic;
 use std::str;
@@ -148,13 +147,11 @@ struct SystemEquationsReqData {
     eq_id: usize,
     interval: [f64; 2],
     estimate: f64,
-    method_id: usize,
 }
 
 async fn calculate_system_from_string(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body();
     let req_id;
-    let estimate;
     let x0;
     let y0;
     let tolerance;
@@ -166,7 +163,6 @@ async fn calculate_system_from_string(ctx: Context) -> Json<serde_json::Value> {
     match serde_json::from_str::<EquationReqData>(&str_ref) {
         Ok(data) => {
             req_id = data.eq_id;
-            estimate = data.estimate;
             x0 = data.interval[0];
             y0 = data.interval[1];
             tolerance = data.estimate;
