@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from "react";
 
 const CalculatorComponent: React.FC<{
   formData: { method_id: number; eq_id: number };
-}> = ({ formData }) => {
+  solution: { x: number; y: number };
+}> = ({ formData, solution }) => {
   const calculatorRef = useRef<Desmos.GraphingCalculator | null>(null);
 
   useEffect(() => {
@@ -17,6 +18,10 @@ const CalculatorComponent: React.FC<{
       case 0: {
         calculator.setExpression({ id: "graph1", latex: "y=x^2 + y^2 - 4" });
         calculator.setExpression({ id: "graph2", latex: "y=3x^2" });
+        calculator.setExpression({
+          id: "graph3",
+          latex: `0 - ${solution.x}^2 + ${solution.y}^2 - 4`,
+        });
         break;
       }
       case 1: {
@@ -28,6 +33,10 @@ const CalculatorComponent: React.FC<{
         calculator.setExpression({
           id: "graph2",
           latex: "0=x^2 - y + y^2 + 0.17",
+        });
+        calculator.setExpression({
+          id: "graph3",
+          latex: `0 - (${solution.x}^2 + ${solution.x} - ${solution.y}^2 - 0.15)`,
         });
         break;
       }
@@ -41,12 +50,16 @@ const CalculatorComponent: React.FC<{
           id: "graph2",
           latex: "0=x + \\sin(y) + 0.4",
         });
+        calculator.setExpression({
+          id: "graph3",
+          latex: `0 - (2 * ${solution.y} - \\cos(${solution.x} + 1))`,
+        });
         break;
       }
       default:
         break;
     }
-  }, [formData.method_id, formData.eq_id]);
+  }, [formData.method_id, formData.eq_id, solution]);
 
   return <div id="calculator" style={{ width: "100%", height: "400px" }}></div>;
 };

@@ -360,7 +360,7 @@ const LinearEquationPage = () => {
     } catch (error) {
       console.error(error);
       handleOpen();
-      setError(`Error while processing: ${error}`);
+      setError(`Error while processing: ${"input error"}`);
     }
   };
 
@@ -438,7 +438,7 @@ const LinearEquationPage = () => {
     } catch (error) {
       console.error(error);
       handleOpen();
-      setError(`Error while uploading: ${error}`);
+      setError(`Error while uploading: ${"input error"}`);
     }
   };
 
@@ -504,13 +504,13 @@ const LinearEquationPage = () => {
                       <br />
                       f1(x,y): 0 = x^2 + y^2 - 4 <br />
                       f2(x,y): 0 = -3x^2 + y <br />
-                      1. <br />
-                      f1(x,y): 0 = 2 * y - cos(x+1) <br />
-                      f2(x,y): 0 = x + sin(y) + 0.4 <br />
-                      2.
+                      1.
                       <br />
                       f1(x,y): 0 = x^2 + x - y^2 - 0.15 <br />
                       f2(x,y): 0 = x^2 - y + y^2 + 0.17 <br />
+                      2. <br />
+                      f1(x,y): 0 = 2 * y - cos(x+1) <br />
+                      f2(x,y): 0 = x + sin(y) + 0.4 <br />
                     </p>
                   )}
                 </div>
@@ -694,7 +694,7 @@ const LinearEquationPage = () => {
                   Погрешность:
                   <input
                     className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    type="number"
+                    type="text"
                     name="method_id"
                     value={solution.error_value}
                     disabled
@@ -712,8 +712,8 @@ const LinearEquationPage = () => {
                       <div className="col-span-1 w-fit py-1">
                         <input
                           type="text"
-                          name="iter"
-                          id="iter"
+                          name="y"
+                          id="y"
                           value={solution ? solution.y : "None"}
                           disabled
                           className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
@@ -729,8 +729,8 @@ const LinearEquationPage = () => {
                       <div className="col-span-1 w-fit py-1">
                         <input
                           type="text"
-                          name="iter"
-                          id="iter"
+                          name="x"
+                          id="x"
                           value={solution ? solution.x : "None"}
                           disabled
                           className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
@@ -749,8 +749,8 @@ const LinearEquationPage = () => {
                       <div className="col-span-1 w-fit py-1">
                         <input
                           type="text"
-                          name="iter"
-                          id="iter"
+                          name="func_value"
+                          id="func_value"
                           value={solution ? solution.function_value : "None"}
                           disabled
                           className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
@@ -900,7 +900,7 @@ const LinearEquationPage = () => {
 
               <div className="col-span-2 w-full">
                 {isSytemsOpen ? (
-                  <CalculatorComponent formData={formData} />
+                  <CalculatorComponent formData={formData} solution={solution}/>
                 ) : (
                   <>
                     <CustomSingleChart

@@ -98,6 +98,7 @@ impl<'a> Solver<'a> {
         let og_left = left;
         let og_right = right;
         let og_estimate = estimate;
+        let mut prev_x = 0.0; // Variable to store the previous value of x
 
         loop {
             x = (left + right) / 2.0;
@@ -116,12 +117,19 @@ impl<'a> Solver<'a> {
                 let result_x = (x * multiplier).ceil() / multiplier;
                 let result_fx = (self.equation.get_value(x) * multiplier).ceil() / multiplier;
 
+                let error_value = if self.n > 0 {
+                    (x - prev_x).abs()
+                } else {
+                    0.0 // For the first iteration, there's no previous x, so error_value is 0
+                };
+    
                 self.n += 1;
 
                 return Json(json!({
                     "result": {
                         "left": og_left,
                         "right": og_right,
+                        "error_value": (right - left).abs(),
                         "estimate": og_estimate,
                         "eq_id": self.equation.get_function_index(),
                         "method_id": 0,
@@ -133,7 +141,9 @@ impl<'a> Solver<'a> {
                     }
                 }));
             }
-            self.n += 1; // Increment the step counter if the loop continues
+            self.n += 1;
+            prev_x = x;
+
         }
     }
 
@@ -152,6 +162,7 @@ impl<'a> Solver<'a> {
             } else {
                 right
             };
+
 
         // Check for convergence condition
         if 1.0 - self.equation.derivative(left, 1) / sigma >= 1.0
@@ -195,6 +206,7 @@ impl<'a> Solver<'a> {
 
                 return Json(json!({
                     "result": {
+                        "error_value": (x_next - x).abs(),
                         "left": og_left,
                         "right": og_right,
                         "estimate": og_estimate,
@@ -262,6 +274,7 @@ impl<'a> Solver<'a> {
 
         Json(json!({
             "result": {
+                "error_value": (x - x0).abs(),
                 "left": og_left,
                 "right": og_right,
                 "estimate": og_estimate,
@@ -306,6 +319,7 @@ impl<'a> Solver<'a> {
 
                 return Json(json!({
                     "result": {
+                        "error_value": abs_diff,
                         "left": og_left,
                         "right": og_right,
                         "estimate": og_estimate,
