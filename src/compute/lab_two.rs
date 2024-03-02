@@ -36,7 +36,8 @@ impl Equation {
 
     fn get_value(&self, x: f64) -> f64 {
         match self {
-            Self::Equation1 => 1.62 * x.powi(3) - 8.15 * x.powi(2) + 4.39 * x + 4.29,
+            // Self::Equation1 => 1.62 * x.powi(3) - 8.15 * x.powi(2) + 4.39 * x + 4.29,
+            Self::Equation1 => 2.0 * x.powi(3) - 9.0 * x.powi(2) - 7.0 * x + 11.0,
             Self::Equation2 => x.powi(3) - x + 4.0,
             Self::Equation3 => x.exp() - 5.0,
             Self::Equation4 => (2.0 * x).sin() + PI / 4.0,
@@ -45,10 +46,10 @@ impl Equation {
 
     fn get_function_index(&self) -> usize {
         match self {
-            Self::Equation1 => 1,
-            Self::Equation2 => 2,
-            Self::Equation3 => 3,
-            Self::Equation4 => 4,
+            Self::Equation1 => 1-1,
+            Self::Equation2 => 2-1,
+            Self::Equation3 => 3-1,
+            Self::Equation4 => 4-1,
         }
     }
 
@@ -167,10 +168,19 @@ impl<'a> Solver<'a> {
         }
 
         let mut x = x0;
+        let mut res = std::f64::INFINITY; // Initialize `res` with infinity for the first iteration
         let mut steps = Vec::new();
 
         loop {
             let x_next = x - self.equation.get_value(x) / sigma;
+
+            if (x0 - x_next).abs() > res {
+                // If the distance between the new and old values is greater than the previous max distance,
+                // it indicates the method may not converge in the current interval.
+                return Json(
+                    json!({"error": "Narrow down the interval. The method converges only in a small neighborhood of the root."}),
+                );
+            }
 
             steps.push(json!({
                 "key": self.n,
@@ -205,6 +215,7 @@ impl<'a> Solver<'a> {
                 }));
             }
 
+            res = (x_next - x).abs(); // Update `res` with the current difference for the next iteration
             x = x_next;
             self.n += 1; // Increment the step counter for the next iteration
         }
@@ -270,6 +281,7 @@ impl<'a> Solver<'a> {
             }
         }))
     }
+
     fn solve_secant(&mut self, mut x0: f64, mut x1: f64, estimate: f64) -> Json<serde_json::Value> {
         let mut steps = Vec::new();
         let og_left = x0;
@@ -343,6 +355,7 @@ impl<'a> Solver<'a> {
 pub enum SystemEquations {
     EquationSystem1,
     EquationSystem2,
+    EquationSystem3,
 }
 
 impl SystemEquations {
@@ -350,22 +363,22 @@ impl SystemEquations {
         match number {
             0 => Self::EquationSystem1,
             1 => Self::EquationSystem2,
+            2 => Self::EquationSystem3,
             _ => panic!("Invalid equation number"),
         }
     }
     fn get_value(&self, x: f64, y: f64) -> (f64, f64) {
         match self {
-            SystemEquations::EquationSystem1 => {
-                // Example functions for demonstration
-                (x.powi(2) + y.powi(2) - 4.0, -3.0 * x.powi(2) + y)
-            }
-            SystemEquations::EquationSystem2 => {
-                // Another example
-                (
-                    0.1 * x.powi(2) + x + 0.2 * y.powi(2) - 0.3,
-                    0.2 * x.powi(2) + y + 0.1 * y * x - 0.7,
-                )
-            }
+            SystemEquations::EquationSystem1 => (x.powi(2) + y.powi(2) - 4.0, -3.0 * x.powi(2) + y),
+            SystemEquations::EquationSystem2 => (x.powi(2)+x-y.powi(2)-0.15, x.powi(2)-y+y.powi(2)+0.17),
+            SystemEquations::EquationSystem3 => (2.0 * y - (x+1.0).cos(), x + y.sin() + 0.4),
+        }
+    }
+    fn get_function_index(&self) -> usize {
+        match self {
+            Self::EquationSystem1 => 1-1,
+            Self::EquationSystem2 => 2-1,
+            Self::EquationSystem3 => 3-1,
         }
     }
 }
@@ -380,7 +393,13 @@ pub struct NewtonSystemMethod<'a> {
 
 impl<'a> NewtonSystemMethod<'a> {
     pub fn new(x0: f64, y0: f64, tolerance: f64, equations: &'a SystemEquations) -> Self {
-        Self { x0, y0, tolerance, equations, counter: 0 }
+        Self {
+            x0,
+            y0,
+            tolerance,
+            equations,
+            counter: 0,
+        }
     }
 
     fn partial_derivatives(&self) -> ((f64, f64), (f64, f64)) {
@@ -425,10 +444,13 @@ impl<'a> NewtonSystemMethod<'a> {
 
         if estimate < self.tolerance {
             json!({
-                "x": x1,
-                "y": y1,
-                "iterations": self.counter,
-                "estimate": estimate,
+                "result":{
+                    "eq_id": self.equations.get_function_index(),
+                    "x": x1,
+                    "y": y1,
+                    "iterations": self.counter,
+                    "error_value": estimate,
+                }
             })
         } else {
             self.x0 = x1;

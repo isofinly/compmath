@@ -1,15 +1,8 @@
 "use client";
-import {
-  Chart as ChartJS,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Scatter } from "react-chartjs-2";
 import { useEffect, useState } from "react";
+import Script from "next/script";
 import {
+  Button,
   Table,
   TableHeader,
   TableColumn,
@@ -17,8 +10,10 @@ import {
   TableRow,
   TableCell,
   getKeyValue,
+  Switch,
 } from "@nextui-org/react";
-import CustomChart from "@/components/CustomChart";
+import CustomSingleChart from "@/components/CustomSingleChart";
+import CalculatorComponent from "@/components/CalculatorComponent";
 
 const saveObjectToFile = (
   object: { key: string; anotherKey: string },
@@ -40,9 +35,10 @@ const LinearEquationPage = () => {
   const [solution, setSolution] = useState<any>("");
   const [value, setValue] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isSytemsOpen, setIsSystemsOpen] = useState(false);
   const [error, setError] = useState("");
   const [rows, setRows] = useState(2);
-  const [equationIndex, setEquationIndex] = useState(0);
+  const [equationIndex, setEquationIndex] = useState(-1);
   const [solutionFile, setSolutionFile] = useState<any>("");
   const [halfdivisonTableRows, setHalfdivisonTableRows] = useState<any>([
     {
@@ -285,6 +281,14 @@ const LinearEquationPage = () => {
     setIsOpen(false);
   };
 
+  const handleSystemChange = () => {
+    if (isSytemsOpen) {
+      location.reload()
+    } else {
+      setIsSystemsOpen(true);
+    }
+  };
+
   const handleSubmitString = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
@@ -294,7 +298,10 @@ const LinearEquationPage = () => {
       err: "",
       function_value: 0,
       iterations: 0,
+      error_value: 0,
       root: 0,
+      x: 0,
+      y: 0,
       steps: [],
     });
 
@@ -303,8 +310,16 @@ const LinearEquationPage = () => {
         formData;
       const interval: number[] = [intervalMin, intervalMax];
 
+      if (estimate <= 0) {
+        handleOpen();
+        setError("Estimate must be positive");
+        return;
+      }
+
       const response = await fetch(
-        "http://127.0.0.1:8000/nonlinear_equations/string",
+        isSytemsOpen
+          ? "http://localhost:8000/system_nonlinear_equations/string"
+          : "http://localhost:8000/nonlinear_equations/string",
         {
           method: "POST",
           headers: {
@@ -356,7 +371,10 @@ const LinearEquationPage = () => {
       err: "",
       function_value: 0,
       iterations: 0,
+      error_value: 0, 
       root: 0,
+      x: 0,
+      y: 0,
       steps: [],
     });
 
@@ -364,7 +382,9 @@ const LinearEquationPage = () => {
       const formMultipartData = new FormData(event.currentTarget);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/nonlinear_equations/file",
+        isSytemsOpen
+          ? "http://localhost:8000/system_nonlinear_equations/file"
+          : "http://localhost:8000/nonlinear_equations/file",
         {
           method: "POST",
           body: formMultipartData,
@@ -406,7 +426,10 @@ const LinearEquationPage = () => {
       setEquationIndex(data?.result?.eq_id);
       setFormData({
         ...formData,
+        x: data?.result?.x,
+        y: data?.result?.y,
         estimate: data?.result?.estimate,
+        error_value: data?.result?.error_value,
         method_id: data?.result?.method_id,
         eq_id: data?.result?.eq_id,
         intervalMin: data?.result?.left,
@@ -420,12 +443,55 @@ const LinearEquationPage = () => {
   };
 
   const handleSave = async () => {
-    console.log(solutionFile);
     saveObjectToFile(solutionFile, "result.json");
   };
 
+  // useEffect(() => {
+  //   switch (formData.method_id) {
+  //     case 0: {
+  //       setTimeout(() => {
+  //         const elt = document.getElementById("calculator");
+  //         const calculator = Desmos.GraphingCalculator(elt);
+  //         calculator.setExpression({ id: "graph1", latex: "y=x^2 + y^2 - 4" });
+  //         calculator.setExpression({ id: "graph2", latex: "y=3x^2" });
+
+  //         var dcgWrappers = document.querySelectorAll(".dcg-wrapper");
+  //         if (dcgWrappers.length > 1) {
+  //           for (var i = 1; i < dcgWrappers.length; i++) {
+  //             dcgWrappers[i].parentNode.removeChild(dcgWrappers[i]);
+  //           }
+  //         }
+  //       }, 1000);
+  //       break;
+  //     }
+  //     case 1: {
+  //       setTimeout(() => {
+  //         const elt = document.getElementById("calculator");
+  //         const calculator = Desmos.GraphingCalculator(elt);
+  //         calculator.setExpression({ id: "graph1", latex: "y=x^2" });
+  //         calculator.setExpression({ id: "graph2", latex: "y=6x^2" });
+
+  //         var dcgWrappers = document.querySelectorAll(".dcg-wrapper");
+  //         if (dcgWrappers.length > 1) {
+  //           for (var i = 1; i < dcgWrappers.length; i++) {
+  //             dcgWrappers[i].parentNode.removeChild(dcgWrappers[i]);
+  //           }
+  //         }
+  //       }, 1000);
+  //       break;
+  //     }
+  //   }
+
+  // },[formData.eq_id])
+
   return (
     <>
+      <Script
+        src="https://www.desmos.com/api/v1.8/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"
+        onError={(e: Error) => {
+          console.error("Script failed to load", e);
+        }}
+      />
       <div className="container mx-auto space-y-12 py-8">
         <div className="border-gray-900/10 border-b-2 pb-12">
           <h1 className="text-3xl font-semibold leading-7 text-gray-900">
@@ -440,6 +506,9 @@ const LinearEquationPage = () => {
             <label className="block text-md font-medium leading-6 text-gray-900">
               Ручной ввод параметров
             </label>
+            <Switch className="mt-2" onClick={handleSystemChange}>
+              Система уравнений
+            </Switch>
             <div className="mt-2">
               <form
                 onSubmit={handleSubmitString}
@@ -458,15 +527,32 @@ const LinearEquationPage = () => {
                       onChange={handleChange}
                     />
                   </label>
-                  <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
-                    0. 1.62x³ - 8.15x² + 4.39x + 4.29 = 0 <br />
-                    1. x³ - x + 4 = 0 <br />
-                    2. exp(x) - 5 = 0 <br />
-                    3. sin(2*x) + π/4 = 0
-                  </p>
+                  {!isSytemsOpen && (
+                    <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
+                      0. 1.62x³ - 8.15x² + 4.39x + 4.29 = 0 <br />
+                      1. x³ - x + 4 = 0 <br />
+                      2. exp(x) - 5 = 0 <br />
+                      3. sin(2*x) + π/4 = 0
+                    </p>
+                  )}
+                  {isSytemsOpen && (
+                    <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
+                      0.
+                      <br />
+                      f1(x,y): 0 = x^2 + y^2 - 4 <br />
+                      f2(x,y): 0 = -3x^2 + y <br />
+                      1. <br />
+                      f1(x,y): 0 = 2 * y - cos(x+1) <br />
+                      f2(x,y): 0 = x + sin(y) + 0.4 <br />
+                      2.
+                      <br />
+                      f1(x,y): 0 = x^2 + x - y^2 - 0.15 <br />
+                      f2(x,y): 0 = x^2 - y + y^2 + 0.17 <br />
+                    </p>
+                  )}
                 </div>
                 <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
-                  Interval min:
+                  {isSytemsOpen ? "starting x" : "Interval max"}
                   <input
                     className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     type="number"
@@ -476,7 +562,7 @@ const LinearEquationPage = () => {
                   />
                 </label>
                 <label className="grid col-span-2 text-md font-medium leading-6 text-gray-900">
-                  Interval max:
+                  {isSytemsOpen ? "starting y" : "Interval max"}
                   <input
                     className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     type="number"
@@ -498,33 +584,56 @@ const LinearEquationPage = () => {
                 </label>
 
                 <div className="grid grid-cols-2 gap-y-4 gap-x-4 col-span-2 text-md font-medium leading-6 text-gray-900 items-center">
-                  <label className="grid text-md font-medium leading-6 text-gray-900">
-                    Method ID:
-                    <input
-                      className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                      type="number"
-                      name="method_id"
-                      min={0}
-                      max={3}
-                      value={formData.method_id}
-                      onChange={handleChange}
-                    />
-                  </label>
-                  <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
-                    0. Half division <br />
-                    1. Simple iteration
-                    <br />
-                    2. Newton <br />
-                    3. Secant
-                  </p>
+                  {!isSytemsOpen && (
+                    <>
+                      <label className="grid text-md font-medium leading-6 text-gray-900">
+                        Method ID:
+                        <input
+                          className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                          type="number"
+                          name="method_id"
+                          min={0}
+                          max={3}
+                          value={formData.method_id}
+                          onChange={handleChange}
+                        />
+                      </label>
+                      <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
+                        0. Half division <br />
+                        1. Simple iteration
+                        <br />
+                        2. Newton <br />
+                        3. Secant
+                      </p>
+                    </>
+                  )}
+                  {isSytemsOpen && (
+                    <>
+                      <label className="grid text-md font-medium leading-6 text-gray-900">
+                        Method ID:
+                        <input
+                          className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                          type="number"
+                          name="method_id"
+                          min={0}
+                          max={0}
+                          value={formData.method_id}
+                          onChange={handleChange}
+                        />
+                      </label>
+                      <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
+                        0. Newton <br />
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="mt-2 flex items-center justify-end gap-x-6">
-                  <button
+                  <Button
                     type="submit"
                     className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                   >
                     Рассчитать
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -570,12 +679,12 @@ const LinearEquationPage = () => {
                   className="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />
                 <div className="mt-2 flex items-center justify-end gap-x-6">
-                  <button
+                  <Button
                     type="submit"
                     className="rounded-md bg-indigo-600 px-3 py-2 text-md font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                   >
                     Рассчитать
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -586,12 +695,12 @@ const LinearEquationPage = () => {
               Решение
             </h1>
             <div className="mt-2 flex items-center justify-start gap-x-6">
-              <button
+              <Button
                 onClick={handleSave}
                 className="rounded-md bg-indigo-600 px-3 py-2 text-md font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 Скачать
-              </button>
+              </Button>
             </div>
             {solution && solution.err && (
               <div
@@ -617,43 +726,96 @@ const LinearEquationPage = () => {
                     className="px-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   />
                 </div>
-              </div>
-              <div className="col-span-1 w-full">
-                <label className="block text-md font-medium leading-6 text-gray-900">
-                  x
+
+                <label className="grid text-md font-medium leading-6 text-gray-900">
+                  Погрешность:
+                  <input
+                    className="block w-50 rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    type="number"
+                    name="method_id"
+                    value={solution.error_value}
+                    disabled
+                  />
                 </label>
-                <div className="py-2">
-                  <div className="col-span-1 w-fit py-1">
-                    <input
-                      type="text"
-                      name="iter"
-                      id="iter"
-                      value={solution ? solution.root : "None"}
-                      disabled
-                      className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="col-span-1 w-full">
-                <label className="block text-md font-medium leading-6 text-gray-900">
-                  f(x)
-                </label>
-                <div className="py-2">
-                  <div className="col-span-1 w-fit py-1">
-                    <input
-                      type="text"
-                      name="iter"
-                      id="iter"
-                      value={solution ? solution.function_value : "None"}
-                      disabled
-                      className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    />
-                  </div>
-                </div>
               </div>
 
-              {formData.method_id == 0 && (
+              {isSytemsOpen ? (
+                <>
+                  <div className="col-span-1 w-full">
+                    <label className="block text-md font-medium leading-6 text-gray-900">
+                      y
+                    </label>
+                    <div className="py-2">
+                      <div className="col-span-1 w-fit py-1">
+                        <input
+                          type="text"
+                          name="iter"
+                          id="iter"
+                          value={solution ? solution.y : "None"}
+                          disabled
+                          className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-span-1 w-full">
+                    <label className="block text-md font-medium leading-6 text-gray-900">
+                      x
+                    </label>
+                    <div className="py-2">
+                      <div className="col-span-1 w-fit py-1">
+                        <input
+                          type="text"
+                          name="iter"
+                          id="iter"
+                          value={solution ? solution.x : "None"}
+                          disabled
+                          className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-1 w-full">
+                    <label className="block text-md font-medium leading-6 text-gray-900">
+                      f(x)
+                    </label>
+                    <div className="py-2">
+                      <div className="col-span-1 w-fit py-1">
+                        <input
+                          type="text"
+                          name="iter"
+                          id="iter"
+                          value={solution ? solution.function_value : "None"}
+                          disabled
+                          className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-span-1 w-full">
+                    <label className="block text-md font-medium leading-6 text-gray-900">
+                      x
+                    </label>
+                    <div className="py-2">
+                      <div className="col-span-1 w-fit py-1">
+                        <input
+                          type="text"
+                          name="root"
+                          id="root"
+                          value={solution ? solution.root : "None"}
+                          disabled
+                          className="px-2 block w-50 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!isSytemsOpen && formData.method_id == 0 && (
                 <div className="col-span-2 w-full">
                   <label className="block text-md font-medium leading-6 text-gray-900">
                     Уточнение корня уравнения методом половинного деления
@@ -683,7 +845,7 @@ const LinearEquationPage = () => {
                 </div>
               )}
 
-              {formData.method_id == 1 && (
+              {!isSytemsOpen && formData.method_id == 1 && (
                 <div className="col-span-2 w-full">
                   <label className="block text-md font-medium leading-6 text-gray-900">
                     Уточнение корня уравнения методом простой итерации
@@ -713,7 +875,7 @@ const LinearEquationPage = () => {
                 </div>
               )}
 
-              {formData.method_id == 2 && (
+              {!isSytemsOpen && formData.method_id == 2 && (
                 <div className="col-span-2 w-full">
                   <label className="block text-md font-medium leading-6 text-gray-900">
                     Уточнение корня уравнения методом Ньютона
@@ -743,7 +905,7 @@ const LinearEquationPage = () => {
                 </div>
               )}
 
-              {formData.method_id == 3 && (
+              {!isSytemsOpen && formData.method_id == 3 && (
                 <div className="col-span-2 w-full">
                   <label className="block text-md font-medium leading-6 text-gray-900">
                     Уточнение корня уравнения методом секущих
@@ -774,11 +936,17 @@ const LinearEquationPage = () => {
               )}
 
               <div className="col-span-2 w-full">
-                <CustomChart
-                  start={formData.intervalMin}
-                  finish={formData.intervalMax}
-                  index={formData.eq_id}
-                />
+                {isSytemsOpen ? (
+                  <CalculatorComponent formData={formData} />
+                ) : (
+                  <>
+                    <CustomSingleChart
+                      start={formData.intervalMin}
+                      finish={formData.intervalMax}
+                      index={formData.eq_id}
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>

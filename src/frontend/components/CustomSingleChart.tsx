@@ -11,9 +11,8 @@ function generateArray(start: number, finish: number, step: number) {
 }
 
 const CustomChart: React.FC<any> = ({start, finish, index}) => {
-  console.log(index)
   const data = useMemo(() => {
-    const labels = generateArray(start, finish, 0.3);
+    const labels = generateArray(start-(finish-start*0.3), finish+(finish-start*0.3), 0.3);
     const datasets = [
       {
         label: "f(x) = 1.62x^3 - 8.15x^2 + 4.39x + 4.29",

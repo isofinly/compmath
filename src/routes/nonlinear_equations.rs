@@ -6,6 +6,7 @@ use graphul::{
 use multipart::server::Multipart;
 use regex::Regex;
 use serde::Deserialize;
+use serde_json::json;
 use std::io::BufRead;
 use std::panic;
 use std::str;
@@ -115,7 +116,7 @@ async fn calculate_equation_from_file(ctx: Context) -> Json<serde_json::Value> {
         }
     }
 
-    if !(0..3).contains(&req_id) {
+    if !(0..4).contains(&req_id) {
         return Json(serde_json::json!({ "error": "Invalid equation id" }));
     }
 
@@ -144,11 +145,10 @@ async fn calculate_equation_from_file(ctx: Context) -> Json<serde_json::Value> {
 
 #[derive(Debug, Deserialize)]
 struct SystemEquationsReqData {
-    x0: f64,
-    y0: f64,
-    tolerance: f64,
     eq_id: usize,
+    interval: [f64; 2],
     estimate: f64,
+    method_id: usize,
 }
 
 async fn calculate_system_from_string(ctx: Context) -> Json<serde_json::Value> {
@@ -187,10 +187,49 @@ async fn calculate_system_from_string(ctx: Context) -> Json<serde_json::Value> {
     let result = method.solve();
 
     Json(result)
-
 }
+
 async fn calculate_system_from_file(ctx: Context) -> Json<serde_json::Value> {
-    todo!()
+    let x0;
+    let y0;
+    let tolerance;
+    let req_id;
+
+    let str_ref = ctx.body().as_str().to_string();
+    let boundary = ctx.headers().get(CONTENT_TYPE).unwrap().to_str().unwrap();
+    let re: Regex = Regex::new(r"boundary=(.*)").unwrap();
+    let captures = re.captures(boundary).unwrap();
+    let boundary = captures.get(1).unwrap().as_str();
+
+    let mut mp = Multipart::with_body(str_ref.as_bytes(), boundary);
+
+    let mut buffer: Vec<u8> = Vec::new();
+
+    while let Some(mut field) = mp.read_entry().unwrap() {
+        let data = field.data.fill_buf().unwrap();
+        buffer.extend_from_slice(data);
+    }
+
+    match serde_json::from_slice::<SystemEquationsReqData>(&buffer) {
+        Ok(data) => {
+            x0 = data.interval[0];
+            y0 = data.interval[1];
+            tolerance = data.estimate;
+            req_id = data.eq_id;
+        }
+        Err(e) => {
+            eprintln!("Failed to parse JSON: {}", e);
+            return Json(serde_json::json!({ "error": "Failed to parse JSON" }));
+        }
+    }
+
+    // Here, we assume you have a way to solve the system of equations similar to how individual equations are solved
+    // For example:
+    let equations = SystemEquations::new(req_id.try_into().unwrap());
+    let mut method = NewtonSystemMethod::new(x0, y0, tolerance, &equations);
+    let result = method.solve();
+
+    Json(result)
 }
 
 pub async fn routes() -> Graphul {
