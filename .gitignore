@@ -186,3 +186,4 @@ dist
 *.d.ts
 
 *.lock*
+src/.DS_Store
