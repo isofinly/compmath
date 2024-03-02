@@ -98,7 +98,6 @@ impl<'a> Solver<'a> {
         let og_left = left;
         let og_right = right;
         let og_estimate = estimate;
-        let mut prev_x = 0.0; // Variable to store the previous value of x
 
         loop {
             x = (left + right) / 2.0;
@@ -116,12 +115,6 @@ impl<'a> Solver<'a> {
                 let multiplier = 10f64.powi(n as i32);
                 let result_x = (x * multiplier).ceil() / multiplier;
                 let result_fx = (self.equation.get_value(x) * multiplier).ceil() / multiplier;
-
-                let error_value = if self.n > 0 {
-                    (x - prev_x).abs()
-                } else {
-                    0.0 // For the first iteration, there's no previous x, so error_value is 0
-                };
     
                 self.n += 1;
 
@@ -142,7 +135,6 @@ impl<'a> Solver<'a> {
                 }));
             }
             self.n += 1;
-            prev_x = x;
 
         }
     }
