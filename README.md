@@ -9,7 +9,3 @@ This project is licensed under the GNU, Version 3.0. See the LICENSE file for mo
 ## Contributing
 
 If you would like to contribute, please feel free to open a pull request on GitHub.
-
-## License
-
-The repository file is licensed under the MIT license.
