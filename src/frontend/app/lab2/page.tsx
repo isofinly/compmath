@@ -492,18 +492,18 @@ const LinearEquationPage = () => {
                   </label>
                   {!isSytemsOpen && (
                     <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
-                      0. 1.62x³ - 8.15x² + 4.39x + 4.29 = 0 <br />
-                      1. x³ - x + 4 = 0 <br />
-                      2. exp(x) - 5 = 0 <br />
-                      3. sin(2*x) + π/4 = 0
+                      0. 1.62x³ - 8.15x² + 4.39x + 4.29 <br />
+                      1. x³ - x + 4  <br />
+                      2. exp(x) - 5 <br />
+                      3. sin(2*x) + π/4 
                     </p>
                   )}
                   {isSytemsOpen && (
                     <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
                       0.
                       <br />
-                      f1(x,y): 0 = x^2 + y^2 - 4 <br />
-                      f2(x,y): 0 = -3x^2 + y <br />
+                      f1(x,y): x^2 + y^2 = 4 <br />
+                      f2(x,y): 3x^2 = y <br />
                       1.
                       <br />
                       f1(x,y): 0 = x^2 + x - y^2 - 0.15 <br />
