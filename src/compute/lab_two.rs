@@ -39,6 +39,7 @@ impl Equation {
             // Self::Equation1 => 1.62 * x.powi(3) - 8.15 * x.powi(2) + 4.39 * x + 4.29,
             Self::Equation1 => 2.0 * x.powi(3) - 9.0 * x.powi(2) - 7.0 * x + 11.0,
             Self::Equation2 => x.powi(3) - x + 4.0,
+            // Self::Equation2 => -1.8*x.powi(3)-2.94*x.powi(2)+10.37*x+5.38,
             Self::Equation3 => x.exp() - 5.0,
             Self::Equation4 => (2.0 * x).sin() + PI / 4.0,
         }

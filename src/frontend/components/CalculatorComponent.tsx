@@ -16,7 +16,7 @@ const CalculatorComponent: React.FC<{
 
     switch (formData.eq_id) {
       case 0: {
-        calculator.setExpression({ id: "graph1", latex: "y=x^2 + y^2 - 4" });
+        calculator.setExpression({ id: "graph1", latex: "x^2 + y^2 = 4" });
         calculator.setExpression({ id: "graph2", latex: "y=3x^2" });
         calculator.setExpression({
           id: "graph3",
