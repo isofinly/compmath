@@ -36,8 +36,8 @@ impl Equation {
 
     fn get_value(&self, x: f64) -> f64 {
         match self {
-            // Self::Equation1 => 1.62 * x.powi(3) - 8.15 * x.powi(2) + 4.39 * x + 4.29,
-            Self::Equation1 => 2.0 * x.powi(3) - 9.0 * x.powi(2) - 7.0 * x + 11.0,
+            Self::Equation1 => 1.62 * x.powi(3) - 8.15 * x.powi(2) + 4.39 * x + 4.29,
+            // Self::Equation1 => 2.0 * x.powi(3) - 9.0 * x.powi(2) - 7.0 * x + 11.0,
             Self::Equation2 => x.powi(3) - x + 4.0,
             // Self::Equation2 => -1.8*x.powi(3)-2.94*x.powi(2)+10.37*x+5.38,
             Self::Equation3 => x.exp() - 5.0,
@@ -94,6 +94,12 @@ impl<'a> Solver<'a> {
         mut right: f64,
         estimate: f64,
     ) -> Json<serde_json::Value> {
+        if self.equation.get_value(left) * self.equation.get_value(right) >= 0.0 {
+            return Json(
+                json!({"error": "Function values at the interval endpoints must have opposite signs"}),
+            );
+        }
+
         let mut steps = Vec::new();
         let mut x;
         let og_left = left;
@@ -116,7 +122,7 @@ impl<'a> Solver<'a> {
                 let multiplier = 10f64.powi(n as i32);
                 let result_x = (x * multiplier).ceil() / multiplier;
                 let result_fx = (self.equation.get_value(x) * multiplier).ceil() / multiplier;
-    
+
                 self.n += 1;
 
                 return Json(json!({
@@ -136,11 +142,15 @@ impl<'a> Solver<'a> {
                 }));
             }
             self.n += 1;
-
         }
     }
 
     fn solve_iteration(&mut self, left: f64, right: f64, estimate: f64) -> Json<serde_json::Value> {
+        if self.equation.get_value(left) * self.equation.get_value(right) >= 0.0 {
+            return Json(
+                json!({"error": "Function values at the interval endpoints must have opposite signs"}),
+            );
+        }
         let og_left = left;
         let og_right = right;
         let og_estimate = estimate;
@@ -155,7 +165,6 @@ impl<'a> Solver<'a> {
             } else {
                 right
             };
-
 
         // Check for convergence condition
         if 1.0 - self.equation.derivative(left, 1) / sigma >= 1.0
@@ -213,15 +222,17 @@ impl<'a> Solver<'a> {
                 }));
             }
 
-            res = (x_next - x).abs(); 
+            res = (x_next - x).abs();
             x = x_next;
             self.n += 1;
         }
     }
 
     fn solve_newton(&mut self, left: f64, right: f64, estimate: f64) -> Json<serde_json::Value> {
-        if self.equation.get_value(left) * self.equation.get_value(right) > 0.0 {
-            return Json(json!({"error": "На данном участке нет корней."}));
+        if self.equation.get_value(left) * self.equation.get_value(right) >= 0.0 {
+            return Json(
+                json!({"error": "Function values at the interval endpoints must have opposite signs"}),
+            );
         }
 
         let og_estimate = estimate;
@@ -286,6 +297,12 @@ impl<'a> Solver<'a> {
         let og_left = x0;
         let og_right = x1;
         let og_estimate = estimate;
+
+        let denominator = self.equation.get_value(x1) - self.equation.get_value(x0);
+        if denominator.abs() < std::f64::EPSILON {
+            return Json(json!({"error": "Denominator too small, secant method cannot proceed"}));
+        }
+
         loop {
             let x2 = x1
                 - self.equation.get_value(x1) * (x1 - x0)
@@ -328,7 +345,7 @@ impl<'a> Solver<'a> {
 
             x0 = x1;
             x1 = x2;
-            self.n += 1; 
+            self.n += 1;
         }
     }
 

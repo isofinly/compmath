@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
 
-const SingleChartComponent: React.FC<{
+const SystemChartComponent: React.FC<{
   formData: { eq_id: number };
-}> = ({ formData }) => {
+  solution: { x: number; y: number };
+}> = ({ formData, solution }) => {
   const calculatorRef = useRef<any | null>(null);
 
   useEffect(() => {
@@ -14,12 +15,13 @@ const SingleChartComponent: React.FC<{
 
       const calculator = calculatorRef.current;
 
-      switch (formData.eq_id) {
+      switch (formData?.eq_id) {
         case 0: {
-          // 2.0 * y - (x+1.0).cos(), x + y.sin() + 0.4
+          calculator.setExpression({ id: "graph1", latex: "x^2 + y^2 = 4" });
+          calculator.setExpression({ id: "graph2", latex: "y=3x^2" });
           calculator.setExpression({
-            id: "graph1",
-            latex: "1.62x^3 - 8.15x^2 + 4.39x + 4.29",
+            id: "graph3",
+            latex: `0 - ${solution.x}^2 + ${solution.y}^2 - 4`,
           });
           break;
         }
@@ -27,7 +29,15 @@ const SingleChartComponent: React.FC<{
           // 2.0 * y - (x+1.0).cos(), x + y.sin() + 0.4
           calculator.setExpression({
             id: "graph1",
-            latex: "x^3 - x + 4 ",
+            latex: "0=x^2 + x - y^2 - 0.15",
+          });
+          calculator.setExpression({
+            id: "graph2",
+            latex: "0=x^2 - y + y^2 + 0.17",
+          });
+          calculator.setExpression({
+            id: "graph3",
+            latex: `0 - (${solution?.x}^2 + ${solution?.x} - ${solution?.y}^2 - 0.15)`,
           });
           break;
         }
@@ -35,15 +45,15 @@ const SingleChartComponent: React.FC<{
           // 2.0 * y - (x+1.0).cos(), x + y.sin() + 0.4
           calculator.setExpression({
             id: "graph1",
-            latex: "\\exp(x) - 5",
+            latex: "0=2 * y - \\cos(x+1)",
           });
-          break;
-        }
-        case 3: {
-          // 2.0 * y - (x+1.0).cos(), x + y.sin() + 0.4
           calculator.setExpression({
-            id: "graph1",
-            latex: "\\sin(2*x) + \\pi/4",
+            id: "graph2",
+            latex: "0=x + \\sin(y) + 0.4",
+          });
+          calculator.setExpression({
+            id: "graph3",
+            latex: `0 - (2 * ${solution?.y} - \\cos(${solution?.x} + 1))`,
           });
           break;
         }
@@ -52,9 +62,9 @@ const SingleChartComponent: React.FC<{
       }
     }, 1000);
     return () => clearTimeout(timeoutId);
-  }, [formData.eq_id]);
+  }, [formData?.eq_id, solution]);
 
   return <div id="calculator" style={{ width: "100%", height: "400px" }}></div>;
 };
 
-export default SingleChartComponent;
+export default SystemChartComponent;

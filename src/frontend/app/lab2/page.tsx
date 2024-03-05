@@ -13,7 +13,7 @@ import {
   Switch,
 } from "@nextui-org/react";
 import CustomSingleChart from "@/components/CustomSingleChart";
-import CalculatorComponent from "@/components/CalculatorComponent";
+import CustomSystemChart from "@/components/CustomSystemChart";
 
 const saveObjectToFile = (
   object: { key: string; anotherKey: string },
@@ -286,6 +286,7 @@ const LinearEquationPage = () => {
       location.reload();
     } else {
       setIsSystemsOpen(true);
+      console.log(formData);
     }
   };
 
@@ -493,9 +494,9 @@ const LinearEquationPage = () => {
                   {!isSytemsOpen && (
                     <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
                       0. 1.62x³ - 8.15x² + 4.39x + 4.29 <br />
-                      1. x³ - x + 4  <br />
+                      1. x³ - x + 4 <br />
                       2. exp(x) - 5 <br />
-                      3. sin(2*x) + π/4 
+                      3. sin(2*x) + π/4
                     </p>
                   )}
                   {isSytemsOpen && (
@@ -899,14 +900,15 @@ const LinearEquationPage = () => {
               )}
 
               <div className="col-span-2 w-full">
-                {isSytemsOpen ? (
-                  <CalculatorComponent formData={formData} solution={solution}/>
+                {!isSytemsOpen ? (
+                  <>
+                    <CustomSingleChart formData={formData} />
+                  </>
                 ) : (
                   <>
-                    <CustomSingleChart
-                      start={formData.intervalMin}
-                      finish={formData.intervalMax}
-                      index={formData.eq_id}
+                    <CustomSystemChart
+                      formData={formData}
+                      solution={solution}
                     />
                   </>
                 )}
