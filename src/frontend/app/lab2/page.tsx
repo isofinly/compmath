@@ -313,7 +313,7 @@ const LinearEquationPage = () => {
 
       if (estimate <= 0) {
         handleOpen();
-        setError("Estimate must be positive");
+        setError("Estimate must be >=0");
         return;
       }
 

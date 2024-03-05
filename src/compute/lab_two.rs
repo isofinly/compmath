@@ -37,6 +37,7 @@ impl Equation {
     fn get_value(&self, x: f64) -> f64 {
         match self {
             Self::Equation1 => 1.62 * x.powi(3) - 8.15 * x.powi(2) + 4.39 * x + 4.29,
+            // Self::Equation1 => x.powi(3) - 1.89*x.powi(2) - 2.0*x + 1.76,
             // Self::Equation1 => 2.0 * x.powi(3) - 9.0 * x.powi(2) - 7.0 * x + 11.0,
             Self::Equation2 => x.powi(3) - x + 4.0,
             // Self::Equation2 => -1.8*x.powi(3)-2.94*x.powi(2)+10.37*x+5.38,
@@ -65,7 +66,7 @@ impl Equation {
         }
     }
     fn is_monotonic(&self, left: f64, right: f64) -> bool {
-        let samples = ((left-right).abs().round()/2.0) as i32;
+        let samples = ((left - right).abs().round() / 2.0) as i32;
         let step = (right - left) / samples as f64;
         let mut previous_sign = self.derivative(left, 1).signum();
 

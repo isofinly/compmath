@@ -1,6 +1,6 @@
 {
-  "eq_id": 0,
-  "interval": [-10,10],
+  "eq_id": 1,
+  "interval": [-2,-1],
   "estimate": 0.01,
   "method_id": 0
 }
