@@ -64,6 +64,24 @@ impl Equation {
             _ => panic!("Unsupported derivative order"),
         }
     }
+    fn is_monotonic(&self, left: f64, right: f64) -> bool {
+        let samples = ((left-right).abs().round()/2.0) as i32;
+        let step = (right - left) / samples as f64;
+        let mut previous_sign = self.derivative(left, 1).signum();
+
+        for i in 1..=samples {
+            let x = left + step * i as f64;
+            let current_sign = self.derivative(x, 1).signum();
+
+            // If the sign changes, the function is not monotonic.
+            if current_sign != previous_sign && current_sign != 0.0 {
+                return false;
+            }
+            previous_sign = current_sign;
+        }
+
+        true
+    }
 }
 
 impl<'a> Solver<'a> {
@@ -98,6 +116,9 @@ impl<'a> Solver<'a> {
             return Json(
                 json!({"error": "Function values at the interval endpoints must have opposite signs"}),
             );
+        }
+        if !self.equation.is_monotonic(left, right) {
+            return Json(json!({"error": "Function must be monotonic in the given interval"}));
         }
 
         let mut steps = Vec::new();
@@ -150,6 +171,9 @@ impl<'a> Solver<'a> {
             return Json(
                 json!({"error": "Function values at the interval endpoints must have opposite signs"}),
             );
+        }
+        if !self.equation.is_monotonic(left, right) {
+            return Json(json!({"error": "Function must be monotonic in the given interval"}));
         }
         let og_left = left;
         let og_right = right;
@@ -234,6 +258,9 @@ impl<'a> Solver<'a> {
                 json!({"error": "Function values at the interval endpoints must have opposite signs"}),
             );
         }
+        if !self.equation.is_monotonic(left, right) {
+            return Json(json!({"error": "Function must be monotonic in the given interval"}));
+        }
 
         let og_estimate = estimate;
         let og_left = left;
@@ -301,6 +328,9 @@ impl<'a> Solver<'a> {
         let denominator = self.equation.get_value(x1) - self.equation.get_value(x0);
         if denominator.abs() < std::f64::EPSILON {
             return Json(json!({"error": "Denominator too small, secant method cannot proceed"}));
+        }
+        if !self.equation.is_monotonic(x0, x1) {
+            return Json(json!({"error": "Function must be monotonic in the given interval"}));
         }
 
         loop {
