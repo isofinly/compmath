@@ -30,7 +30,7 @@ impl Function {
         match self {
             Self::Polynomial => 2.0 * x.powi(3) - 9.0 * x.powi(2) - 7.0 * x + 11.0,
             Self::Sinus => (x * PI / 180.0).sin(),
-            Self::Linear => 2.0 * x,
+            Self::Linear => x * x,
             Self::Exponential => 1.0 / x,
         }
     }
@@ -68,7 +68,6 @@ impl IntegralCalculator {
     fn integrate(&self) -> Option<(f64, i32)> {
         let f = |x: f64| -> f64 { self.function.evaluate(x) };
 
-        // Проверка на существование интеграла
         if Self::integration_limit_at_a(&f, self.lower_bound, self.upper_bound).is_none()
             || Self::integration_limit_at_b(&f, self.lower_bound, self.upper_bound).is_none()
             || Self::integration_limit_on_interval(&f, self.lower_bound, self.upper_bound).is_none()
@@ -76,19 +75,25 @@ impl IntegralCalculator {
             return None;
         }
 
-        // Если интеграл существует, вычислить его
         let (mut result, mut n) = (0.0, 1);
-        let mut i_0 = self.apply_method(n, &f);
-        let error_target = self.error;
+        let mut i_h = self.apply_method(n, &f);
+        let mut error = self.error + 1.0;
 
-        loop {
+        while error > self.error {
             n *= 2;
-            let i_1 = self.apply_method(n, &f);
-            if ((i_0 - i_1) / error_target).abs() < self.error {
-                result = i_1;
+            let i_h2 = self.apply_method(n, &f);
+
+            error = match self.method {
+                IntegrationMethod::Simpson => ((i_h2 - i_h) / 15.0).abs(),
+                _ => ((i_h2 - i_h) / 3.0).abs(),
+            };
+
+            if error < self.error {
+                result = i_h2;
                 break;
             }
-            i_0 = i_1;
+
+            i_h = i_h2;
         }
 
         Some((result, n))
@@ -177,4 +182,5 @@ impl IntegralCalculator {
             }
         }
     }
+    
 }
