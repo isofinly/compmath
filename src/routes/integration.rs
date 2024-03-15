@@ -123,7 +123,7 @@ async fn integrate_from_file(ctx: Context) -> Json<serde_json::Value> {
     };
 
     if req_data.error <= 0.0 {
-        return Json(json!({ "error": "Error must be positive" }));
+        return Json(json!({ "error": "Calculation error must be positive" }));
     }
 
     let calculator = IntegralCalculator::new(
