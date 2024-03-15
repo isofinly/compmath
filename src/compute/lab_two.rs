@@ -48,10 +48,10 @@ impl Equation {
 
     fn get_function_index(&self) -> usize {
         match self {
-            Self::Equation1 => 1 - 1,
-            Self::Equation2 => 2 - 1,
-            Self::Equation3 => 3 - 1,
-            Self::Equation4 => 4 - 1,
+            Self::Equation1 => 0,
+            Self::Equation2 => 1,
+            Self::Equation3 => 2,
+            Self::Equation4 => 3,
         }
     }
 
@@ -431,9 +431,9 @@ impl SystemEquations {
     }
     fn get_function_index(&self) -> usize {
         match self {
-            Self::EquationSystem1 => 1 - 1,
-            Self::EquationSystem2 => 2 - 1,
-            Self::EquationSystem3 => 3 - 1,
+            Self::EquationSystem1 => 0,
+            Self::EquationSystem2 => 1,
+            Self::EquationSystem3 => 2,
         }
     }
 }

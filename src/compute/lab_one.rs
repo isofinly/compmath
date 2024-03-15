@@ -37,14 +37,14 @@ impl Matrix {
         let input_string: Value = serde_json::from_str(input_string)?;
         let input_string = input_string["data"]
             .as_str()
-            .ok_or("No 'data' field in input string")?.replace(",",".");
+            .ok_or("No 'data' field in input string")?.replace(',',".");
         let mut lines = input_string.lines();
 
         // Parse the dimension 'n'
         let n_str = lines.next().ok_or("Input string is empty")?;
         self.n = n_str
             .trim()
-            .replace(",", ".")
+            .replace(',', ".")
             .parse()
             .map_err(|_| "Invalid input for dimension 'n'")?;
 
@@ -54,7 +54,7 @@ impl Matrix {
             let row: Result<Vec<f64>, _> = line
                 .split_whitespace()
                 .map(|s| {
-                    s.replace(",", ".")
+                    s.replace(',', ".")
                         .parse()
                         .map_err(|_| "Invalid input for matrix coefficients")
                 })
@@ -73,7 +73,7 @@ impl Matrix {
         let acc_str = lines.next().ok_or("Insufficient input lines")?;
         self.acc = acc_str
             .trim()
-            .replace(",", ".")
+            .replace(',', ".")
             .parse()
             .map_err(|_| "Invalid input for accuracy")?;
         if self.acc <= 0.0 {
@@ -86,13 +86,13 @@ impl Matrix {
     pub fn init_from_file(&mut self, file_data: &str) -> Result<(), Box<dyn Error>> {
         let mut lines = file_data.lines();
 
-        self.n = lines.next().unwrap().replace(",", ".").parse().unwrap();
+        self.n = lines.next().unwrap().replace(',', ".").parse().unwrap();
 
         for _ in 0..self.n {
             let line = lines.next().unwrap();
             let row: Vec<f64> = line
                 .split_whitespace()
-                .map(|s| s.replace(",", ".").parse().unwrap())
+                .map(|s| s.replace(',', ".").parse().unwrap())
                 .collect();
             let b_val = row.last().unwrap();
             self.b.push(*b_val);
@@ -104,7 +104,7 @@ impl Matrix {
         self.sol_acc = vec![std::f64::MAX; self.n];
 
         let acc_line = lines.next().unwrap();
-        self.acc = acc_line.replace(",", ".").parse().unwrap();
+        self.acc = acc_line.replace(',', ".").parse().unwrap();
         if self.acc < 0.0 {
             return Err("Accuracy must be greater than 0".into());
         }
@@ -164,18 +164,18 @@ impl Matrix {
      * the sum of the magnitudes of all the other (non-diagonal) elements in that row.
      */
     fn shuffle(&mut self) -> (bool, Vec<Vec<f64>>) {
-        let mut biggest = vec![-1; self.n];
+        let biggest = vec![-1; self.n];
         let mut biggest_set = HashSet::new();
         let mut found_strict = false;
 
-        for i in 0..self.n {
+        for (i, _) in biggest.iter().enumerate().take(self.n) {
             let sum: f64 = self.a[i].iter().sum();
             for j in 0..self.n {
                 if 2.0 * self.a[i][j] >= sum {
                     if 2.0 * self.a[i][j] > sum {
                         found_strict = true;
                     }
-                    biggest[i] = j as isize;
+                    biggest.clone()[i] = j as isize;
                     biggest_set.insert(j);
                     break;
                 }
@@ -192,7 +192,7 @@ impl Matrix {
         let mut shuffled_a = vec![vec![]; self.n];
         let mut shuffled_b = vec![0.0; self.n];
 
-        for i in 0..self.n {
+        for (i, _) in biggest.iter().enumerate().take(self.n) {
             let index = biggest[i] as usize;
             shuffled_a[index] = self.a[i].clone();
             shuffled_b[index] = self.b[i];

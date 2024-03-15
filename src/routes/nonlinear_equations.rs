@@ -66,9 +66,7 @@ async fn calculate_equation_from_string(ctx: Context) -> Json<serde_json::Value>
         _ => panic!("Invalid method id"),
     };
 
-    let result = method.solve(interval[0], interval[1], estimate);
-
-    result
+    method.solve(interval[0], interval[1], estimate)
 }
 
 async fn calculate_equation_from_file(ctx: Context) -> Json<serde_json::Value> {
@@ -76,13 +74,12 @@ async fn calculate_equation_from_file(ctx: Context) -> Json<serde_json::Value> {
     let interval;
     let estimate;
     let method_id;
-    let bndry;
 
     let str_ref = ctx.body().as_str().to_string();
     let boundary = ctx.headers().get(CONTENT_TYPE);
 
-    match boundary {
-        Some(boundary) => bndry = boundary.to_str().unwrap(),
+    let bndry = match boundary {
+        Some(boundary) => boundary.to_str().unwrap(),
         None => {
             return Json(serde_json::json!({ "error": "Missing boundary in Content-Type header" }));
         }
@@ -137,9 +134,7 @@ async fn calculate_equation_from_file(ctx: Context) -> Json<serde_json::Value> {
         _ => return Json(serde_json::json!({ "error": "Invalid method id" })),
     };
 
-    let result = method.solve(interval[0], interval[1], estimate);
-
-    result
+    method.solve(interval[0], interval[1], estimate)
 }
 
 #[derive(Debug, Deserialize)]
