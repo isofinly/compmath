@@ -38,7 +38,9 @@ async fn integrate_from_string(ctx: Context) -> Json<Value> {
         0 => Function::Polynomial,
         1 => Function::Sinus,
         2 => Function::Linear,
-        3 => Function::Exponential,
+        3 => Function::ScaledLogistic,
+        4 => Function::Hyperbola,
+        5 => Function::SqrtHyperbola,
         _ => return Json(json!({ "error": "Invalid function id" })),
     };
 
@@ -109,7 +111,9 @@ async fn integrate_from_file(ctx: Context) -> Json<serde_json::Value> {
         0 => Function::Polynomial,
         1 => Function::Sinus,
         2 => Function::Linear,
-        3 => Function::Exponential,
+        3 => Function::ScaledLogistic,
+        4 => Function::Hyperbola,
+        5 => Function::SqrtHyperbola,
         _ => return Json(json!({ "error": "Invalid function id" })),
     };
 
@@ -137,6 +141,7 @@ async fn integrate_from_file(ctx: Context) -> Json<serde_json::Value> {
     let result = calculator.calculate_integral();
     Json(result)
 }
+
 pub async fn routes() -> Graphul {
     let mut router = Graphul::router();
 

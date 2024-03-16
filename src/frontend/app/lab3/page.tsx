@@ -133,10 +133,12 @@ const LinearEquationPage = () => {
                   />
                 </label>
                 <p className="grid col-span-1 text-md font-medium leading-6 text-gray-900">
-                  0. 2.0 * x.pow(3) - 9.0 * x.pow(2) - 7.0 * x + 11.0 <br />
-                  1. (x * PI / 180.0).sin() <br />
-                  2. 2.0 * x <br />
-                  3. 1.0 / x
+                  0. x.powi(3) - 3.0 * x.powi(2) + 7.0 * x - 10.0 <br />
+                  1. x.sin() <br />
+                  2. x <br />
+                  3. x / (1.0 + x.powi(2)).sqrt() <br />
+                  4. 1.0 / x <br />
+                  5. 1.0 / x.sqrt()
                 </p>
               </div>
 
@@ -275,7 +277,7 @@ const LinearEquationPage = () => {
           <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 justify-items-center justify-center">
             <div className="col-span-2 w-full">
               <label className="block text-md font-medium leading-6 text-gray-900">
-                Количество итераций
+                Количество разбиений
               </label>
               <div className="py-2">
                 <input
