@@ -240,7 +240,7 @@ const LinearEquationPage = () => {
 
         <div className="col-span-full mb-6">
           <label className="block text-md font-medium leading-6 text-gray-900">
-            Ручной ввод параметров
+            Ввод параметров из файла
           </label>
           <div className="mt-2">
             <form onSubmit={handleSubmitFile} encType="multipart/form-data">
