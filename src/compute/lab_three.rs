@@ -89,9 +89,60 @@ impl IntegralCalculator {
             upper_bound,
         }
     }
+    fn adjust_intervals_for_symmetry(&self, a: f64, b: f64) -> Vec<(f64, f64)> {
+        let interval_data = self.function.get_points_of_infinite_discontinuity();
+        let mut adjusted_intervals = vec![];
+
+        for point in interval_data.points {
+            // Check if the point of discontinuity is within the bounds
+            if point >= a && point <= b {
+                let left = self.function.evaluate(point - 0.0001);
+                let right = self.function.evaluate(point + 0.0001);
+
+                // Check for symmetry and opposite signs
+                if left.is_sign_negative() != right.is_sign_negative() {
+                    // If the function is symmetric around the point and has opposite signs,
+                    // we can ignore the symmetrical interval around this point of discontinuity.
+                    if a < point {
+                        adjusted_intervals.push((a, point - 0.0001));
+                    }
+                    if b > point {
+                        adjusted_intervals.push((point + 0.0001, b));
+                    }
+                    continue;
+                }
+            }
+            // If no special handling is needed, add the original interval
+            adjusted_intervals.push((a, b));
+        }
+
+        // If no adjustments were made, return the original interval
+        if adjusted_intervals.is_empty() {
+            adjusted_intervals.push((a, b));
+        }
+
+        adjusted_intervals
+    }
 
     pub fn calculate_integral(&self) -> Value {
-        self.check_and_calculate_integral(self.lower_bound, self.upper_bound)
+        // Adjust intervals based on symmetry and opposite signs around discontinuities
+        let adjusted_intervals = self.adjust_intervals_for_symmetry(self.lower_bound, self.upper_bound);
+
+        // Calculate integral for each adjusted interval
+        let mut results = vec![];
+        for (start, end) in adjusted_intervals {
+            let result = self.check_and_calculate_integral(start, end);
+            results.push(result);
+        }
+
+        // Aggregate results or handle error cases
+        if results.is_empty() {
+            json!({"error": "Could not calculate the integral."})
+        } else if results.len() == 1 {
+            results[0].clone()
+        } else {
+            json!({"intervals": results})
+        }
     }
 
     fn check_and_calculate_integral(&self, a: f64, b: f64) -> Value {

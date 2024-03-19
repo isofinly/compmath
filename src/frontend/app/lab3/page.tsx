@@ -48,6 +48,10 @@ const LinearEquationPage = () => {
         setError(data.error);
         return;
       }
+      if (data.intervals) {
+        setSolution({iterations: data.intervals[0].iterations+data.intervals[1].iterations, integral_value: data.intervals[0].integral_value+data.intervals[1].integral_value})
+        return
+      }
       setSolution(data);
     } catch (error) {
       console.error(error);
@@ -95,6 +99,10 @@ const LinearEquationPage = () => {
         setError(data.error);
         return;
       }
+      if (data.intervals) {
+        setSolution({iterations: data.intervals[0].iterations+data.intervals[1].iterations, integral_value: data.intervals[0].integral_value+data.intervals[1].integral_value})
+        return
+      }
       setSolution(data);
     } catch (error) {
       console.error(error);
@@ -127,7 +135,7 @@ const LinearEquationPage = () => {
                     type="number"
                     name="function_id"
                     min={0}
-                    max={3}
+                    max={5}
                     value={formData.function_id}
                     onChange={handleChange}
                   />
