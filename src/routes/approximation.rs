@@ -74,7 +74,6 @@ async fn approximate_from_string(ctx: Context) -> Json<Value> {
 async fn approximate_from_file(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body().as_str().to_string();
     let boundary = ctx.headers().get(CONTENT_TYPE).unwrap().to_str().unwrap();
-    println!("{:?} \n \n {:?}", str_ref, boundary);
 
     let re: Regex = Regex::new(r"boundary=(.*)").unwrap();
     let captures = re.captures(boundary).unwrap();
@@ -91,7 +90,6 @@ async fn approximate_from_file(ctx: Context) -> Json<serde_json::Value> {
     }
     let str_ref = str::from_utf8(&buffer).unwrap();
 
-    println!("{:?}", str_ref);
     let lines: Vec<&str> = str_ref.trim().splitn(2, '\n').collect();
     
     if lines.len() != 2 {
@@ -108,6 +106,7 @@ async fn approximate_from_file(ctx: Context) -> Json<serde_json::Value> {
         Ok(vals) => vals,
         Err(_) => return Json(json!({ "error": "Invalid y values." }))
     };
+
     let mut req_data = ApproximationReqData { x: x_values.clone(), y: y_values.clone() };
     req_data.x = x_values;
     req_data.y = y_values;
