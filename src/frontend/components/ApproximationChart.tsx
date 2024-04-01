@@ -16,13 +16,16 @@ const ApproximationChartComponent: React.FC<{
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      if (!solution) return;
+      if (solution.data_points.length === 0) return;
+      if (solution.data_points) console.log(solution.data_points);
+
       if (!calculatorRef.current) {
         const elt = document.getElementById("calculator");
         calculatorRef.current = Desmos.GraphingCalculator(elt);
       }
 
       const calculator = calculatorRef.current;
-      if (!solution) return;
       calculator.setExpression({ id: "graph1", latex: solution.function });
       solution.data_points.forEach((point, index) => {
         calculator.setExpression({
