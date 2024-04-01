@@ -53,6 +53,7 @@ const LinearEquationPage = () => {
       epsilon_values: [],
       pearson_correlation: 0,
       phi_values: [],
+      data_points: [],
       standard_deviation: 0,
     });
 
@@ -103,6 +104,7 @@ const LinearEquationPage = () => {
       epsilon_values: [],
       pearson_correlation: 0,
       phi_values: [],
+      data_points: [],
       standard_deviation: 0,
     });
 
