@@ -2,6 +2,7 @@ use graphul::{extract::Json, http::Methods, Context, Graphul};
 use serde::Deserialize;
 use serde_json::json;
 use serde_json::Value;
+use std::io::BufRead;
 use std::io::Read;
 use std::str;
 
@@ -12,7 +13,7 @@ use regex::Regex;
 use crate::compute::lab_four::find_best_function;
 use crate::compute::lab_four::ApproximationCalculator;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct ApproximationReqData {
     x: Vec<f64>,
     y: Vec<f64>,
@@ -73,44 +74,44 @@ async fn approximate_from_string(ctx: Context) -> Json<Value> {
 
 async fn approximate_from_file(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body().as_str().to_string();
-        println!("str_ref: {}", str_ref);
+    let boundary = ctx.headers().get(CONTENT_TYPE).unwrap().to_str().unwrap();
+    // panic!("{:?} \n \n {:?}", str_ref, boundary);
 
-    let boundary = ctx
-        .headers()
-        .get(CONTENT_TYPE)
-        .and_then(|ct| ct.to_str().ok())
-        .and_then(|ct| Regex::new(r"boundary=(.*)").unwrap().captures(ct))
-        .and_then(|captures| captures.get(1));
-
-    let boundary = match boundary {
-        Some(b) => b.as_str().trim(),
-        None => {
-            return Json(json!({ "error": "Missing or invalid boundary in Content-Type header" }))
-        }
-    };
+    let re: Regex = Regex::new(r"boundary=(.*)").unwrap();
+    let captures = re.captures(boundary).unwrap();
+    let boundary = captures.get(1).unwrap().as_str();
 
     let mut mp = Multipart::with_body(str_ref.as_bytes(), boundary);
+
     let mut buffer: Vec<u8> = Vec::new();
+    
 
-    while let Ok(Some(mut field)) = mp.read_entry() {
-        let mut data = String::new();
-        if field.data.read_to_string(&mut data).is_ok() {
-            buffer.extend_from_slice(data.as_bytes());
-        }
+    while let Some(mut field) = mp.read_entry().unwrap() {
+        let data = field.data.fill_buf().unwrap();
+        buffer.extend_from_slice(data);
     }
+    let str_ref = str::from_utf8(&buffer).unwrap();
 
-    let req_data: ApproximationReqData = match serde_json::from_slice(&buffer) {
-        Ok(data) => data,
-        Err(e) => {
-            eprintln!("Failed to parse JSON: {}",e);
-            return Json(json!({ "error": "Failed to parse JSON" }));
-        }
+    // panic!("{:?}", str_ref);
+    let lines: Vec<&str> = str_ref.trim().splitn(2, '\n').collect();
+    
+    if lines.len() != 2 {
+        return Json(json!({ "error": "The file must have two lines of numbers, separated by spaces." }));
+    }
+    
+    // Parse the x and y values from the respective lines.
+    let x_values: Vec<f64> = match lines[0].split_whitespace().map(str::parse).collect() {
+        Ok(vals) => vals,
+        Err(_) => return Json(json!({ "error": "Invalid x values." }))
     };
-
-    if req_data.x.len() != req_data.y.len() || req_data.x.is_empty() {
-        return Json(json!({ "error": "X and Y arrays must be of the same length and not empty" }));
-    }
-
+    
+    let y_values: Vec<f64> = match lines[1].split_whitespace().map(str::parse).collect() {
+        Ok(vals) => vals,
+        Err(_) => return Json(json!({ "error": "Invalid y values." }))
+    };
+    let mut req_data = ApproximationReqData { x: x_values.clone(), y: y_values.clone() };
+    req_data.x = x_values;
+    req_data.y = y_values;
     let n = req_data.x.len();
     let function = find_best_function(n, &req_data.x, &req_data.y);
     let mut calculator = ApproximationCalculator::new(function, req_data.x, req_data.y);
