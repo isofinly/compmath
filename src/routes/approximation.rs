@@ -3,7 +3,6 @@ use serde::Deserialize;
 use serde_json::json;
 use serde_json::Value;
 use std::io::BufRead;
-use std::io::Read;
 use std::str;
 
 use graphul::http::utils::header::CONTENT_TYPE;
@@ -75,7 +74,7 @@ async fn approximate_from_string(ctx: Context) -> Json<Value> {
 async fn approximate_from_file(ctx: Context) -> Json<serde_json::Value> {
     let str_ref = ctx.body().as_str().to_string();
     let boundary = ctx.headers().get(CONTENT_TYPE).unwrap().to_str().unwrap();
-    // panic!("{:?} \n \n {:?}", str_ref, boundary);
+    println!("{:?} \n \n {:?}", str_ref, boundary);
 
     let re: Regex = Regex::new(r"boundary=(.*)").unwrap();
     let captures = re.captures(boundary).unwrap();
@@ -92,7 +91,7 @@ async fn approximate_from_file(ctx: Context) -> Json<serde_json::Value> {
     }
     let str_ref = str::from_utf8(&buffer).unwrap();
 
-    // panic!("{:?}", str_ref);
+    println!("{:?}", str_ref);
     let lines: Vec<&str> = str_ref.trim().splitn(2, '\n').collect();
     
     if lines.len() != 2 {
