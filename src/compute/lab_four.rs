@@ -109,41 +109,49 @@ impl ApproximationCalculator {
                 let mut terms: Vec<String> = Vec::new();
                 for i in 0..=m {
                     let coefficient = self.coefficients[i as usize];
-                    let mut term = if i == 0 {
-                        // Don't include the sign for the first coefficient if it's positive
+                    // Skip adding term if coefficient is zero (except for the constant term if it's the only term)
+                    if coefficient == 0.0 && i != 0 {
+                        continue;
+                    }
+                    let mut term = if i == 0 || terms.is_empty() { // Check if terms is empty for the first non-zero coefficient
                         format!("{:.10}", coefficient)
                     } else {
-                        // For other coefficients, use the format with sign
                         format!("{:+.10}", coefficient)
                     };
-
-                    if i != 0 {
+    
+                    if i == 1 {
+                        term += "x"; // Handle exponent 1 without displaying ^1
+                    } else if i > 1 {
                         term += &format!("x^{}", i);
                     }
                     terms.push(term);
+                }
+                if terms.is_empty() { // In case all coefficients are zero
+                    terms.push("0".to_string());
                 }
                 terms.join("")
             }
             Function::Exponential => {
                 format!(
-                    "{:+.10}e^{:+.10}x",
+                    "{:.10}e^{:+.10}x", // Remove plus for the first coefficient
                     self.coefficients[0], self.coefficients[1]
                 )
             }
             Function::Logarithmic => {
                 format!(
-                    "{:+.10} + {:+.10}ln(x)",
+                    "{:.10} + {:+.10}\\ln(x)", // Remove plus for the first coefficient
                     self.coefficients[0], self.coefficients[1]
                 )
             }
             Function::Power => {
                 format!(
-                    "{:+.10}x^{:+.10}",
+                    "{:.10}x^{:+.10}", // Remove plus for the first coefficient
                     self.coefficients[0], self.coefficients[1]
                 )
             }
         }
     }
+    
 }
 
 fn approximation_calculation(f: Function, n: usize, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {

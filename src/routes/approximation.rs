@@ -28,8 +28,8 @@ async fn approximate_from_string(ctx: Context) -> Json<Value> {
     let req_data: ApproximationReqData = match serde_json::from_str(&str_ref) {
         Ok(data) => data,
         Err(e) => {
-            eprintln!("Failed to parse JSON: {}", e);
-            return Json(json!({ "error": "Failed to parse JSON" }));
+            eprintln!("Failed to parse input JSON: {}", e);
+            return Json(json!({ "error": "Failed to parse input data" }));
         }
     };
 
