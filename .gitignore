@@ -187,3 +187,4 @@ dist
 
 *.lock*
 src/.DS_Store
+*.synctex.gz
