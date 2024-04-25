@@ -1,7 +1,7 @@
-pub(crate) mod lab_one;
-pub(crate) mod lab_two;
-pub(crate) mod lab_three;
-pub(crate) mod lab_four;
-pub(crate) mod lab_five;
+pub mod lab_one;
+pub mod lab_two;
+pub mod lab_three;
+pub mod lab_four;
+pub mod lab_five;
 
 pub use crate::compute::lab_one::Matrix;
