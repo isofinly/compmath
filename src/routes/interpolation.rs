@@ -1,5 +1,6 @@
 use graphul::{extract::Json, http::Methods, Context, Graphul};
 use serde::Deserialize;
+use serde::Serialize;
 use serde_json::json;
 use serde_json::Value;
 use std::io::BufRead;
@@ -9,11 +10,21 @@ use graphul::http::utils::header::CONTENT_TYPE;
 use multipart::server::Multipart;
 use regex::Regex;
 
+use crate::compute::lab_five::InterpolationCalculator;
+use crate::compute::lab_five::InterpolationMethod;
 
-#[derive(Deserialize, Debug)]
+
+#[derive(Deserialize)]
 struct InterpolationReqData {
     x: Vec<f64>,
     y: Vec<f64>,
+    method: usize,
+    function: usize
+}
+
+#[derive(Serialize)]
+struct ErrorMsg {
+    error: String,
 }
 
 async fn interpolate_from_string(ctx: Context) -> Json<Value> {
@@ -38,6 +49,22 @@ async fn interpolate_from_string(ctx: Context) -> Json<Value> {
         );
     }
 
+    let method = match req_data.method {
+        0 => InterpolationMethod::Lagrange,
+        1 => InterpolationMethod::NewtonSeparated,
+        2 => InterpolationMethod::NewtonFinite,
+        _ => return Json(json!({ "error": "Invalid method id" })),
+        
+    };
+
+
+    let calculator = InterpolationCalculator::new(method, req_data.x, req_data.y);
+    calculator.interpolate(0.0);
+    calculator.get_interpolated_function()
+        .iter()
+        .for_each(|f| println!("function {:?}", f));
+        println!("values {:?}",calculator.get_interpolated_values(0.0));
+        println!("nodes {:?}",calculator.get_interpolation_nodes());
     Json(json!({
         "data": ""
     }))
