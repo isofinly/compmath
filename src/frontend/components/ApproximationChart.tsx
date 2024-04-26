@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 
-const ApproximationChartComponent: React.FC<{
+const InterpolationChartComponent: React.FC<{
   solution: {
     function: string;
     coefficients: number[];
@@ -39,4 +39,4 @@ const ApproximationChartComponent: React.FC<{
 
   return <div id="calculator" style={{ width: "100%", height: "400px" }}></div>;
 };
-export default ApproximationChartComponent;
+export default InterpolationChartComponent;

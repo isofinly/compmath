@@ -15,10 +15,11 @@ pub struct InterpolationCalculator {
 
 impl InterpolationCalculator {
     pub fn new(method: InterpolationMethod, x: Vec<f64>, y: Vec<f64>) -> Self {
-        if x.len() != y.len() {
-            panic!("x and y must have the same length");
-        }
         InterpolationCalculator { method, x, y }
+    }
+
+    pub fn get_nodes(&self) -> Vec<Vec<f64>> {
+        vec![self.x.clone(), self.y.clone()]
     }
 
     pub fn interpolate<'a>(&'a self) -> Box<dyn Fn(f64) -> f64 + 'a> {
@@ -94,49 +95,12 @@ impl InterpolationCalculator {
 
             for i in 1..=n {
                 term *= v - self.x[i - 1];
-                result += term * defy[0][i] / self.factorial(i);
+                result += term * defy[0][i] / factorial(i);
             }
 
             result
         })
     }
-
-    fn factorial(&self, n: usize) -> f64 {
-        if n <= 1 {
-            1.0
-        } else {
-            n as f64 * self.factorial(n - 1)
-        }
-    }
-
-    // fn stirling<'a>(&'a self) -> Box<dyn Fn(f64) -> f64 + 'a > {
-    //     let n = self.x.len() - 1;
-    //     let center = n / 2;
-    //     let a = self.x[center];
-    //     let defy = self.difference_table();
-
-    //     Box::new(move |v| {
-    //         let h = self.x[center + 1] - self.x[center];
-    //         let t = (v - a) / h;
-    //         let mut result = defy[center][0]
-    //             + t * (defy[center - 1][1] + defy[center][1]) / 2.0
-    //             + t.powi(2) / 2.0 * defy[center - 1][2];
-
-    //         let mut term = t.powi(2) / 2.0;
-
-    //         for k in 3..n {
-    //             if k % 2 == 0 {
-    //                 term *= t / k as f64;
-    //                 result += term * defy[center - k / 2][k];
-    //             } else {
-    //                 term *= (t.powi(2) - ((k / 2) as f64).powi(2)) / (k as f64 * t);
-    //                 result += term * (defy[center - k / 2 - 1][k] + defy[center - k / 2][k]) / 2.0;
-    //             }
-    //         }
-    //         println!("{} {}", v, result);
-    //         result
-    //     })
-    // }
 
     fn stirling<'a>(&'a self) -> Box<dyn Fn(f64) -> f64 + 'a> {
         let n = self.x.len() - 1;
@@ -234,7 +198,7 @@ impl InterpolationCalculator {
             };
             terms.push(term);
         }
-        format!("{}", terms.join(" + "))
+        terms.join(" + ").to_string()
     }
 
     fn newton_separated_latex(&self) -> String {
@@ -248,7 +212,7 @@ impl InterpolationCalculator {
             let term = format!("{} \\cdot {}", diff[i], term_parts.join(" \\cdot "));
             terms.push(term);
         }
-        format!("{}", terms.join(" + "))
+        terms.join(" + ").to_string()
     }
 
     fn newton_finite_latex(&self) -> String {
@@ -273,6 +237,15 @@ impl InterpolationCalculator {
 
         terms.join(" ")
     }
+}
+
+fn factorial(n: usize) -> f64 {
+    let var_name = if n == 0 {
+        1.0
+    } else {
+        n as f64 * factorial(n - 1)
+    };
+    var_name
 }
 
 pub fn generate_function_values(

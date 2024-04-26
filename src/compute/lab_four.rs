@@ -280,7 +280,7 @@ fn standard_deviation_calculation(differences: &[f64], n: usize) -> f64 {
 fn differences_calculation(
     f: Function,
     n: usize,
-    coefficients: &Vec<f64>,
+    coefficients: &[f64],
     x: &[f64],
     y: &[f64],
 ) -> Vec<f64> {

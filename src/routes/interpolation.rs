@@ -1,14 +1,10 @@
 use graphul::{extract::Json, http::Methods, Context, Graphul};
 use serde::Deserialize;
-use serde::Serialize;
 use serde_json::json;
 use serde_json::Value;
-use std::io::BufRead;
 use std::str;
 
-use graphul::http::utils::header::CONTENT_TYPE;
-use multipart::server::Multipart;
-use regex::Regex;
+
 
 use crate::compute::lab_five::generate_function_values;
 use crate::compute::lab_five::InterpolationCalculator;
@@ -18,17 +14,11 @@ use crate::compute::lab_five::InterpolationMethod;
 struct InterpolationReqData {
     x: Vec<f64>,
     y: Vec<f64>,
-    method: usize,
     function: usize,
     point: f64,
     nodes_amount: i32,
     start: f64,
     end: f64,
-}
-
-#[derive(Serialize)]
-struct ErrorMsg {
-    error: String,
 }
 
 async fn interpolate_from_string(ctx: Context) -> Json<Value> {
@@ -56,63 +46,87 @@ async fn interpolate_from_string(ctx: Context) -> Json<Value> {
         return Json(json!({ "error": "Invalid nodes amount" }));
     }
 
-    let method = match req_data.method {
-        0 => InterpolationMethod::Lagrange,
-        1 => InterpolationMethod::NewtonSeparated,
-        2 => InterpolationMethod::NewtonFinite,
-        3 => InterpolationMethod::Stirling,
-        4 => InterpolationMethod::Bessel,
-        _ => return Json(json!({ "error": "Invalid method id" })),
-    };
+    let mut result = serde_json::Map::new();
 
-    if req_data.nodes_amount <= -1 {
-        let calculator = InterpolationCalculator::new(method, req_data.x, req_data.y);
-        println!(
-            "Interpolated value {}",
-            calculator.interpolate()(req_data.point)
-        );
-        println!("Interpolated value {}\n{}",calculator.interpolate()(req_data.point),calculator.print_latex());
+    for method in &[
+        InterpolationMethod::Lagrange,
+        InterpolationMethod::NewtonSeparated,
+        InterpolationMethod::NewtonFinite,
+        InterpolationMethod::Stirling,
+        InterpolationMethod::Bessel,
+    ] {
+        if req_data.nodes_amount <= -1 {
+            let calculator = InterpolationCalculator::new(*method, req_data.x.clone(), req_data.y.clone());
 
-        return Json(json!({
-            "data": {
-                "interpolated_value": calculator.interpolate()(req_data.point),
-                "latex_function": calculator.print_latex(),
-                "difference_table": calculator.difference_table()
+            let method_name = match method {
+                InterpolationMethod::Lagrange => "lagrange",
+                InterpolationMethod::NewtonSeparated => "newton_separated",
+                InterpolationMethod::NewtonFinite => "newton_finite",
+                InterpolationMethod::Stirling => "stirling",
+                InterpolationMethod::Bessel => "bessel",
+            };
+
+            if method_name != "lagrange" {
+                result.insert(
+                    method_name.to_string(),
+                    json!({
+                        "interpolated_value": calculator.interpolate()(req_data.point),
+                        "latex_function": calculator.print_latex(),
+                        "difference_table": calculator.difference_table(),
+                        "nodes": calculator.get_nodes()
+                    }),
+                );
+            } else {
+                result.insert(
+                    method_name.to_string(),
+                    json!({
+                        "interpolated_value": calculator.interpolate()(req_data.point),
+                        "latex_function": calculator.print_latex(),
+                        "nodes": calculator.get_nodes()
+                    }),
+                );
             }
-        }))
-    } else {
-        if req_data.start > req_data.end {
-            return Json(json!({ "error": "Invalid interval" }));
-        };
+        } else {
+            if req_data.start > req_data.end {
+                return Json(json!({ "error": "Invalid interval" }));
+            };
 
-        let function = match req_data.function {
-            0 => f64::sin,
-            1 => f64::cos,
-            2 => f64::tan,
-            _ => return Json(json!({ "error": "Invalid function id" })),
-        };
-        let (x, y) = generate_function_values(
-            function,
-            req_data.start,
-            req_data.end,
-            req_data.nodes_amount.abs() as usize,
-        );
-        // println!("interpolation nodes:");
-        // for i in 0..x.len() {
-        //     println!("({},{})", x[i], y[i]);
-        // }
-        // println!("x array:\n{:?}\ny array:\n{:?}", x,y);
-        let calculator = InterpolationCalculator::new(method, x, y);
-        println!("Interpolated value {}\n{}",calculator.interpolate()(req_data.point),calculator.print_latex());
+            let function = match req_data.function {
+                0 => f64::sin,
+                1 => f64::cos,
+                2 => f64::tan,
+                _ => return Json(json!({ "error": "Invalid function id" })),
+            };
+            let (x, y) = generate_function_values(
+                function,
+                req_data.start,
+                req_data.end,
+                req_data.nodes_amount.unsigned_abs() as usize,
+            );
 
-        return Json(json!({
-            "data": {
-                "interpolated_value": calculator.interpolate()(req_data.point),
-                "latex_function": calculator.print_latex(),
-                "difference_table": calculator.difference_table()
-            }
-        }))
+            let calculator = InterpolationCalculator::new(*method, x, y);
+
+            let method_name = match method {
+                InterpolationMethod::Lagrange => "lagrange",
+                InterpolationMethod::NewtonSeparated => "newton_separated",
+                InterpolationMethod::NewtonFinite => "newton_finite",
+                InterpolationMethod::Stirling => "stirling",
+                InterpolationMethod::Bessel => "bessel",
+            };
+
+            result.insert(
+                method_name.to_string(),
+                json!({
+                    "interpolated_value": calculator.interpolate()(req_data.point),
+                    "latex_function": calculator.print_latex(),
+                    "difference_table": calculator.difference_table(),
+                    "nodes": calculator.get_nodes()
+                }),
+            );
         }
+    }
+
+    Json(json!({ "result": result }))
 }
 
 pub async fn routes() -> Graphul {
@@ -121,7 +135,6 @@ pub async fn routes() -> Graphul {
     let mut interpolation_group = router.group("interpolation");
 
     interpolation_group.post("/string", interpolate_from_string);
-    // interpolation_group.post("/file", approximate_from_file);
 
     router
 }
