@@ -3,7 +3,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
 use serde_json::Value;
-use std::f64::consts::PI;
 use std::io::BufRead;
 use std::str;
 
@@ -47,7 +46,7 @@ async fn interpolate_from_string(ctx: Context) -> Json<Value> {
         }
     };
 
-    if req_data.x.len() != req_data.y.len() || req_data.x.is_empty() {
+    if req_data.x.len() != req_data.y.len() {
         return Json(
             json!({ "error": "Invalid data: X and Y arrays must be of the same length and not empty" }),
         );
@@ -61,18 +60,26 @@ async fn interpolate_from_string(ctx: Context) -> Json<Value> {
         0 => InterpolationMethod::Lagrange,
         1 => InterpolationMethod::NewtonSeparated,
         2 => InterpolationMethod::NewtonFinite,
+        3 => InterpolationMethod::Stirling,
+        4 => InterpolationMethod::Bessel,
         _ => return Json(json!({ "error": "Invalid method id" })),
     };
 
     if req_data.nodes_amount <= -1 {
-        println!("{:?}", req_data);
         let calculator = InterpolationCalculator::new(method, req_data.x, req_data.y);
         println!(
             "Interpolated value {}",
             calculator.interpolate()(req_data.point)
         );
-        println!("Latex: {}", calculator.print_latex());
+        println!("Interpolated value {}\n{}",calculator.interpolate()(req_data.point),calculator.print_latex());
 
+        return Json(json!({
+            "data": {
+                "interpolated_value": calculator.interpolate()(req_data.point),
+                "latex_function": calculator.print_latex(),
+                "difference_table": calculator.difference_table()
+            }
+        }))
     } else {
         if req_data.start > req_data.end {
             return Json(json!({ "error": "Invalid interval" }));
@@ -90,17 +97,22 @@ async fn interpolate_from_string(ctx: Context) -> Json<Value> {
             req_data.end,
             req_data.nodes_amount.abs() as usize,
         );
+        // println!("interpolation nodes:");
+        // for i in 0..x.len() {
+        //     println!("({},{})", x[i], y[i]);
+        // }
+        // println!("x array:\n{:?}\ny array:\n{:?}", x,y);
         let calculator = InterpolationCalculator::new(method, x, y);
-        println!(
-            "Interpolated value {}",
-            calculator.interpolate()(req_data.point)
-        );
-        println!("Latex: {}", calculator.print_latex());
-    }
+        println!("Interpolated value {}\n{}",calculator.interpolate()(req_data.point),calculator.print_latex());
 
-    Json(json!({
-        "data": ""
-    }))
+        return Json(json!({
+            "data": {
+                "interpolated_value": calculator.interpolate()(req_data.point),
+                "latex_function": calculator.print_latex(),
+                "difference_table": calculator.difference_table()
+            }
+        }))
+        }
 }
 
 pub async fn routes() -> Graphul {
