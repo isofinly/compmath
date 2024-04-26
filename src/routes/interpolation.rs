@@ -4,8 +4,6 @@ use serde_json::json;
 use serde_json::Value;
 use std::str;
 
-
-
 use crate::compute::lab_five::generate_function_values;
 use crate::compute::lab_five::InterpolationCalculator;
 use crate::compute::lab_five::InterpolationMethod;

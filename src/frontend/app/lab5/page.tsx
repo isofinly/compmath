@@ -1,13 +1,5 @@
 "use client";
-import {
-  JSXElementConstructor,
-  Key,
-  ReactElement,
-  ReactNode,
-  ReactPortal,
-  SetStateAction,
-  useState,
-} from "react";
+import { useState } from "react";
 import { AccordionItem, Button, Switch } from "@nextui-org/react";
 import Script from "next/script";
 import { Accordion } from "@nextui-org/react";
@@ -19,7 +11,6 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  getKeyValue,
 } from "@nextui-org/react";
 import SingleChartComponent from "@/components/CustomInterpolationChart";
 
@@ -28,8 +19,6 @@ const InterpolationPage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState("");
   const [value, setValue] = useState<string>("");
-  const [solutionFile, setSolutionFile] = useState<any>("");
-  const [method, setMethod] = useState<number>(0);
   const [functionId, setFunctionId] = useState<number>(0);
   const [point, setPoint] = useState<any>(0);
   const [nodes, setNodes] = useState<any>(-1);
@@ -92,7 +81,6 @@ const InterpolationPage = () => {
       }
       setError("");
       setSolution(data.result);
-      setSolutionFile(data.result);
     } catch (error) {
       console.error(error);
       handleOpen();
@@ -162,7 +150,6 @@ const InterpolationPage = () => {
       }
 
       setSolution(data.result);
-      setSolutionFile(data.result);
     } catch (error) {
       console.error(error);
       handleOpen();
@@ -187,7 +174,7 @@ const InterpolationPage = () => {
     );
     const columns = Array.from(
       { length: maxColumns },
-      (_, index) => `${colName} ${index + 1}`
+      (_, index) => `${colName} ${index}`
     );
 
     return (
@@ -412,28 +399,30 @@ const InterpolationPage = () => {
             </div>
           )}
 
-          {!isFunctionSelected && <div className="col-span-full mb-6">
-            <label className="block text-md font-medium leading-6 text-gray-900">
-              Ввод параметров из файла
-            </label>
-            <div className="mt-2">
-              <form onSubmit={handleSubmitFile}>
-                <input
-                  name="file"
-                  type="file"
-                  className="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                />
-                <div className="mt-2 flex items-center justify-end gap-x-6">
-                  <Button
-                    type="submit"
-                    className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  >
-                    Рассчитать
-                  </Button>
-                </div>
-              </form>
+          {!isFunctionSelected && (
+            <div className="col-span-full mb-6">
+              <label className="block text-md font-medium leading-6 text-gray-900">
+                Ввод параметров из файла
+              </label>
+              <div className="mt-2">
+                <form onSubmit={handleSubmitFile}>
+                  <input
+                    name="file"
+                    type="file"
+                    className="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  />
+                  <div className="mt-2 flex items-center justify-end gap-x-6">
+                    <Button
+                      type="submit"
+                      className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    >
+                      Рассчитать
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>}
+          )}
 
           <div className="response-data border-t border-gray-900/10 pb-12">
             <h1 className="text-2xl font-semibold leading-7 text-gray-900 mt-5">
@@ -442,7 +431,7 @@ const InterpolationPage = () => {
 
             <div>
               <Accordion variant="bordered" className="mt-2">
-                {(solution && error === "") ? (
+                {solution && error === "" ? (
                   renderDataAccordion(solution)
                 ) : (
                   <AccordionItem title="No Data Available">
