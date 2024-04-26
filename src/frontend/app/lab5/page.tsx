@@ -2,14 +2,13 @@
 import {
   JSXElementConstructor,
   Key,
-  PromiseLikeOfReactNode,
   ReactElement,
   ReactNode,
   ReactPortal,
   SetStateAction,
   useState,
 } from "react";
-import { AccordionItem, Button } from "@nextui-org/react";
+import { AccordionItem, Button, Switch } from "@nextui-org/react";
 import Script from "next/script";
 import { Accordion } from "@nextui-org/react";
 
@@ -22,7 +21,7 @@ import {
   TableCell,
   getKeyValue,
 } from "@nextui-org/react";
-import InterpolationChartComponent from "@/components/ApproximationChart";
+import SingleChartComponent from "@/components/CustomInterpolationChart";
 
 const InterpolationPage = () => {
   const [solution, setSolution] = useState<any>("");
@@ -34,9 +33,9 @@ const InterpolationPage = () => {
   const [functionId, setFunctionId] = useState<number>(0);
   const [point, setPoint] = useState<any>(0);
   const [nodes, setNodes] = useState<any>(-1);
-  const [start, setStart] = useState<any>(0);
-  const [end, setEnd] = useState<any>(0);
-  const [expanded, setExpanded] = useState("");
+  const [start, setStart] = useState<any>(NaN);
+  const [end, setEnd] = useState<any>(NaN);
+  const [isFunctionSelected, setIsFunctionSelected] = useState(false);
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -55,11 +54,13 @@ const InterpolationPage = () => {
     });
 
     const lines = value.trim().split("\n");
-    const x = lines[0]?.split(" ").map(Number); // Convert string array to number array
-    const y = lines[1]?.split(" ").map(Number); // Convert string array to number array
-
-    // console.log(JSON.stringify({ x, y, method, functionId, point, nodes }));
-
+    let x = lines[0]?.split(" ").map(Number); // Convert string array to number array
+    let y = lines[1]?.split(" ").map(Number); // Convert string array to number array
+    if (!y) {
+      x[x.length] = end;
+      x[0] = start;
+      y = x;
+    }
     try {
       const response = await fetch(
         "http://localhost:8000/interpolation/string",
@@ -82,14 +83,14 @@ const InterpolationPage = () => {
       );
 
       const data = await response.json();
-      console.log(data.result);
+      // console.log(data.result);
 
       if (data.error) {
         handleOpen();
         setError(data.error);
         return;
       }
-
+      setError("");
       setSolution(data.result);
       setSolutionFile(data.result);
     } catch (error) {
@@ -130,7 +131,6 @@ const InterpolationPage = () => {
     if (data.length > 2 && data[2].length === 1) {
       filePoint = data[2][0];
     }
-    
     try {
       const response = await fetch(
         "http://localhost:8000/interpolation/string",
@@ -170,7 +170,16 @@ const InterpolationPage = () => {
     }
   };
 
-  const renderTable = (tableData, colName) => {
+  const handleInputChange = () => {
+    if (isFunctionSelected) {
+      location.reload();
+    } else {
+      setNodes(1);
+      setIsFunctionSelected(true);
+      console.log("");
+    }
+  };
+  const renderTable = (tableData: any[], colName: string | string[]) => {
     // Calculate the maximum number of columns from all rows to ensure consistent table structure
     const maxColumns = tableData.reduce(
       (max, row) => Math.max(max, row.length),
@@ -189,9 +198,9 @@ const InterpolationPage = () => {
           ))}
         </TableHeader>
         <TableBody>
-          {tableData.map((row, idx) => (
+          {tableData.map((row: any, idx: any) => (
             <TableRow key={idx}>
-              {row.map((item, index) => (
+              {row.map((item: any, index: any) => (
                 <TableCell key={index}>
                   {typeof item === "number" ? item.toFixed(4) : item}
                 </TableCell>
@@ -199,7 +208,10 @@ const InterpolationPage = () => {
               {/* Fill in the missing cells if the row has fewer cells than the max */}
               {Array.from({ length: maxColumns - row.length }).map(
                 (_, index) => (
-                  <TableCell key={`filler-${index}`}></TableCell>
+                  <TableCell
+                    key={`filler-${index}`}
+                    children={undefined}
+                  ></TableCell>
                 )
               )}
             </TableRow>
@@ -209,8 +221,11 @@ const InterpolationPage = () => {
     );
   };
 
-  const renderDataAccordion = (data) => {
-    return Object.entries(data).map(([key, value]) => (
+  const renderDataAccordion = (
+    data: ArrayLike<unknown> | { [s: string]: unknown }
+  ) => {
+    // console.log(error)
+    return Object.entries(data).map(([key, value]: [string, any]) => (
       <AccordionItem key={key} title={key.toUpperCase()} className="mt-2">
         <div className="py-2 px-2 w-full rounded-md text-gray-900 sm:text-sm sm:leading-6">
           <h3>Interpolated Value:</h3>
@@ -262,35 +277,101 @@ const InterpolationPage = () => {
             Лабораторная работа
           </h1>
           <p className="mt-1 text-md leading-6 text-gray-600 mb-6">
-            «Аппроксимация функции методом наименьших квадратов»
+            «Интерполяция»
           </p>
 
           <div className="col-span-full mb-6">
             <label className="block text-md font-medium leading-6 text-gray-900">
               Ручной ввод параметров
             </label>
+            <Switch className="mt-2" onClick={handleInputChange}>
+              Выбор функции
+            </Switch>
             <div className="mt-2">
               <form onSubmit={handleSubmitString}>
-                <textarea
-                  name="data"
-                  placeholder="
+                {!isFunctionSelected ? (
+                  <>
+                    <textarea
+                      name="data"
+                      placeholder="
                 1.2 2.9 4.1 5.5 6.7 7.8 9.2 10.3\n
                 7.4 9.5 11.1 12.9 14.6 17.3 18.2 20.7
                 "
-                  rows={3}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className="block w-full rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                />
-                <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
-                  Точка для вычисления значения функции
-                </label>
-                <input
-                  className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  type="number"
-                  value={point}
-                  onChange={(e) => setPoint(Number(e.target.value))}
-                />
+                      rows={3}
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      className="block w-full rounded-md border-0 px-2 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    />
+                    <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
+                      Точка для вычисления значения функции
+                    </label>
+                    <input
+                      className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      value={point}
+                      onChange={(e) => setPoint(Number(e.target.value))}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
+                      Точка для вычисления значения функции
+                      <br />
+                      {"0 => f64::sin"}
+                      <br />
+                      {"1 => f64::cos"}
+                      <br />
+                      {"2 => f64::tan"}
+                      <br />
+                    </label>
+                    <input
+                      className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      value={functionId}
+                      onChange={(e) => setFunctionId(Number(e.target.value))}
+                    />
+                    <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
+                      Точка для вычисления значения функции
+                    </label>
+                    <input
+                      className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      value={point}
+                      onChange={(e) => setPoint(Number(e.target.value))}
+                    />
+                    <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
+                      Начало интервала
+                    </label>
+                    <input
+                      className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      value={start}
+                      onChange={(e) => setStart(Number(e.target.value))}
+                    />
+                    <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
+                      Конец интервала
+                    </label>
+                    <input
+                      className="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      type="number"
+                      value={end}
+                      onChange={(e) => setEnd(Number(e.target.value))}
+                    />
+                    <label className="block mt-2 text-md font-medium leading-6 text-gray-900">
+                      Количество узлов
+                    </label>
+                    <div className="mt-2 flex items-center justify-end gap-x-6">
+                      <input
+                        className="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={nodes}
+                        onChange={(e) => setNodes(Number(e.target.value))}
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="mt-2 flex items-center justify-end gap-x-6">
                   <button
                     type="submit"
@@ -331,7 +412,7 @@ const InterpolationPage = () => {
             </div>
           )}
 
-          <div className="col-span-full mb-6">
+          {!isFunctionSelected && <div className="col-span-full mb-6">
             <label className="block text-md font-medium leading-6 text-gray-900">
               Ввод параметров из файла
             </label>
@@ -352,7 +433,7 @@ const InterpolationPage = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </div>}
 
           <div className="response-data border-t border-gray-900/10 pb-12">
             <h1 className="text-2xl font-semibold leading-7 text-gray-900 mt-5">
@@ -361,13 +442,11 @@ const InterpolationPage = () => {
 
             <div>
               <Accordion variant="bordered" className="mt-2">
-                {solution ? (
+                {(solution && error === "") ? (
                   renderDataAccordion(solution)
                 ) : (
                   <AccordionItem title="No Data Available">
-                    <p>
-                      Please interpolate something.
-                    </p>
+                    <p>Please interpolate something.</p>
                   </AccordionItem>
                 )}
               </Accordion>
@@ -375,7 +454,7 @@ const InterpolationPage = () => {
           </div>
 
           <div id="gd" className="sm:col-span-6 col-span-1"></div>
-          {/* <InterpolationChartComponent solution={solution} /> */}
+          <SingleChartComponent formData={solution} />
         </div>
       </div>
     </>

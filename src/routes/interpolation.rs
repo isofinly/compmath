@@ -46,6 +46,10 @@ async fn interpolate_from_string(ctx: Context) -> Json<Value> {
         return Json(json!({ "error": "Invalid nodes amount" }));
     }
 
+    if req_data.point < req_data.start || req_data.point > req_data.end {
+        return Json(json!({ "error": "Invalid point" }));
+    }
+
     let mut result = serde_json::Map::new();
 
     for method in &[

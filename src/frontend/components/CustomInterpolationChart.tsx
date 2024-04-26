@@ -1,12 +1,15 @@
 import React, { useEffect, useRef } from "react";
 
 const SingleChartComponent: React.FC<{
-  formData: { equation: string, nodes: any};
+  formData: { equation: string, nodes: any } | any;
 }> = ({ formData }) => {
   const calculatorRef = useRef<any | null>(null);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      if (!formData) return
+      if (!formData.newton_separated) return
+      if (!formData.newton_separated.nodes) return
       if (!calculatorRef.current) {
         const elt = document.getElementById("calculator");
         calculatorRef.current = Desmos.GraphingCalculator(elt);
@@ -18,10 +21,10 @@ const SingleChartComponent: React.FC<{
 
       calculator.setExpression({
         id: "graph1",
-        latex: formData.equation,
+        latex: formData.newton_separated.latex_function,
       });
       
-      const pairs = formData.nodes[0].map((x: any, i: string | number) => ({ x, y: formData.nodes[1][i] }));
+      const pairs = formData.newton_separated.nodes[0].map((x: any, i: string | number) => ({ x, y: formData.newton_separated.nodes[1][i] }));
 
       pairs.forEach((pair: { x: any; y: any; }, index: any) => {
         calculator.setExpression({
