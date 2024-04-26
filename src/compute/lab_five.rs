@@ -1,5 +1,3 @@
-use std::f64::EPSILON;
-
 #[derive(Clone, Copy, Debug)]
 pub enum InterpolationMethod {
     Lagrange,
