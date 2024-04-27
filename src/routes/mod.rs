@@ -3,7 +3,8 @@ mod linear_equation;
 mod nonlinear_equations;
 mod integration;
 mod approximation;
-mod interpolation;
+mod interpolation; 
+mod differentials;
 
 use graphul::Graphul;
 
@@ -16,7 +17,8 @@ pub async fn routes() -> Graphul {
         nonlinear_equations::routes().await,
         integration::routes().await,
         approximation::routes().await,
-        interpolation::routes().await
+        interpolation::routes().await,
+        differentials::routes().await
     ]);
 
     router
