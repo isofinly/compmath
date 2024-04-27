@@ -188,3 +188,7 @@ dist
 *.lock*
 src/.DS_Store
 *.synctex.gz
+*.aux
+*.out
+*.toc
+lab*.log
