@@ -240,12 +240,11 @@ impl InterpolationCalculator {
 }
 
 fn factorial(n: usize) -> f64 {
-    let var_name = if n == 0 {
+    if n == 0 {
         1.0
     } else {
         n as f64 * factorial(n - 1)
-    };
-    var_name
+    }
 }
 
 pub fn generate_function_values(
