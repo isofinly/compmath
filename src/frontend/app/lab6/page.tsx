@@ -42,12 +42,12 @@ const Page = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            equation_id: functionId,
-            y0: y0,
-            start: start,
-            end: end,
-            h: h,
-            error: errorValue,
+            equation_id: Number(functionId),
+            y0: Number(y0),
+            start: Number(start),
+            end: Number(end),
+            h: Number(h),
+            error: Number(errorValue),
           }),
         }
       );
