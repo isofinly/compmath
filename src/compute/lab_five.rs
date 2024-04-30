@@ -1,3 +1,5 @@
+use std::panic::{self, AssertUnwindSafe};
+
 #[derive(Clone, Copy, Debug)]
 pub enum InterpolationMethod {
     Lagrange,
@@ -107,58 +109,66 @@ impl InterpolationCalculator {
         let center = n / 2;
         let a = self.x[center];
         let defy = self.difference_table();
-
+    
         Box::new(move |v| {
-            let h = self.x[center + 1] - self.x[center];
-            let t = (v - a) / h;
-
-            let mut result = defy[center][0]
-                + t * (defy[center - 1][1] + defy[center][1]) / 2.0
-                + t * t / 2.0 * defy[center - 1][2];
-            let mut term = t * t / 2.0;
-
-            for k in 3..n {
-                if k % 2 == 0 {
-                    term *= t / k as f64;
-                    result += term * defy[center - k / 2][k];
-                } else {
-                    term *= (t * t - (k / 2) as f64 * (k / 2) as f64) / (k as f64 * t);
-                    result += term * (defy[center - k / 2 - 1][k] + defy[center - k / 2][k]) / 2.0;
+            let safe_compute = AssertUnwindSafe(|| {
+                let h = self.x[center + 1] - self.x[center];
+                let t = (v - a) / h;
+    
+                let mut result = defy[center][0]
+                    + t * (defy[center - 1][1] + defy[center][1]) / 2.0
+                    + t * t / 2.0 * defy[center - 1][2];
+                let mut term = t * t / 2.0;
+    
+                for k in 3..n {
+                    if k % 2 == 0 {
+                        term *= t / k as f64;
+                        result += term * defy[center - k / 2][k];
+                    } else {
+                        term *= (t * t - (k / 2) as f64 * (k / 2) as f64) / (k as f64 * t);
+                        result += term * (defy[center - k / 2 - 1][k] + defy[center - k / 2][k]) / 2.0;
+                    }
                 }
-            }
-            result
+                result
+            });
+    
+            panic::catch_unwind(safe_compute).unwrap_or(0.0)
         })
     }
-
+    
     fn bessel<'a>(&'a self) -> Box<dyn Fn(f64) -> f64 + 'a> {
         let n = self.x.len() - 1;
         let center = n / 2;
         let a = self.x[center];
         let defy = self.difference_table();
-
+    
         Box::new(move |v| {
-            let h = self.x[center + 1] - self.x[center];
-            let t = (v - a) / h;
-            let mut result = (defy[center][0] + defy[center + 1][0]) / 2.0
-                + (t - 0.5) * defy[center][1]
-                + t * (t - 1.0) / 2.0 * (defy[center - 1][2] + defy[center][2]) / 2.0;
-
-            let mut term = t * (t - 1.0) / 2.0;
-
-            for k in 3..(n + 1) {
-                if k % 2 == 0 {
-                    term /= t - 0.5;
-                    term *= (t + ((k / 2 - 1) as f64)) * (t - (k / 2) as f64) / k as f64;
-                    result += term
-                        * (defy[center - 1 - (k / 2 - 1)][k] + defy[center - (k / 2 - 1)][k])
-                        / 2.0;
-                } else {
-                    term *= (t - 0.5) / k as f64;
-                    result += term * defy[center - k / 2][k];
+            let safe_compute = AssertUnwindSafe(|| {
+                let h = self.x[center + 1] - self.x[center];
+                let t = (v - a) / h;
+                let mut result = (defy[center][0] + defy[center + 1][0]) / 2.0
+                    + (t - 0.5) * defy[center][1]
+                    + t * (t - 1.0) / 2.0 * (defy[center - 1][2] + defy[center][2]) / 2.0;
+    
+                let mut term = t * (t - 1.0) / 2.0;
+    
+                for k in 3..(n + 1) {
+                    if k % 2 == 0 {
+                        term /= t - 0.5;
+                        term *= (t + ((k / 2 - 1) as f64)) * (t - (k / 2) as f64) / k as f64;
+                        result += term
+                            * (defy[center - 1 - (k / 2 - 1)][k] + defy[center - (k / 2 - 1)][k])
+                            / 2.0;
+                    } else {
+                        term *= (t - 0.5) / k as f64;
+                        result += term * defy[center - k / 2][k];
+                    }
                 }
-            }
-
-            result
+                
+                result
+            });
+    
+            panic::catch_unwind(safe_compute).unwrap_or(0.0)
         })
     }
 
@@ -240,11 +250,12 @@ impl InterpolationCalculator {
 }
 
 fn factorial(n: usize) -> f64 {
-    if n == 0 {
+    let var_name = if n == 0 {
         1.0
     } else {
         n as f64 * factorial(n - 1)
-    }
+    };
+    var_name
 }
 
 pub fn generate_function_values(

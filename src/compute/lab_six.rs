@@ -175,69 +175,46 @@ impl DifferentialEquationCalculator {
     }
 
     fn milne(&self) -> Vec<(f64, f64)> {
-        let mut x = vec![self.x0];
-        let mut y = vec![self.y0];
-        let n = ((self.xn - self.x0) / self.h).floor() as i32;
-
-        for i in 1..=n {
-            x.push(x[(i - 1) as usize] + self.h);
+        let ee_results = self.extended_euler();
+        let mut x = Vec::new();
+        let mut y = Vec::new();
+    
+        // Decompose the results from Extended Euler into separate vectors for x and y
+        for (xi, yi) in ee_results {
+            x.push(xi);
+            y.push(yi);
         }
-
-        // Starting integration using simple method
-        for i in 1..=std::cmp::min(n, 4) {
-            let last_y = *y.last().unwrap();
-            let last_x = *x.last().unwrap();
-            let prev_x = x[(i - 1) as usize];
-            let prev_y = y[(i - 1) as usize];
-            let k1 = self.equation.evaluate(prev_x, prev_y);
-            let k2 = self.equation.evaluate(last_x, last_y + self.h * k1);
-            y.push(last_y + self.h / 2.0 * (k1 + k2));
-        }
-
-        // Applying Milne's method
-        for i in 4..=n {
+        
+        let n = x.len() as i32;
+    
+        // Applying Milne's method starting from the 4th point
+        for i in 4..n {
             let mut y_pred = y[(i - 4) as usize]
                 + 4.0 * self.h / 3.0
-                    * (2.0
-                        * self
-                            .equation
-                            .evaluate(x[(i - 3) as usize], y[(i - 3) as usize])
-                        - self
-                            .equation
-                            .evaluate(x[(i - 2) as usize], y[(i - 2) as usize])
-                        + 2.0
-                            * self
-                                .equation
-                                .evaluate(x[(i - 1) as usize], y[(i - 1) as usize]));
+                    * (2.0 * self.equation.evaluate(x[(i - 3) as usize], y[(i - 3) as usize])
+                       - self.equation.evaluate(x[(i - 2) as usize], y[(i - 2) as usize])
+                       + 2.0 * self.equation.evaluate(x[(i - 1) as usize], y[(i - 1) as usize]));
             let mut y_corr = y[(i - 2) as usize]
                 + self.h / 3.0
-                    * (self
-                        .equation
-                        .evaluate(x[(i - 2) as usize], y[(i - 2) as usize])
-                        + 4.0
-                            * self
-                                .equation
-                                .evaluate(x[(i - 1) as usize], y[(i - 1) as usize])
-                        + self.equation.evaluate(x[i as usize], y_pred));
-
+                    * (self.equation.evaluate(x[(i - 2) as usize], y[(i - 2) as usize])
+                       + 4.0 * self.equation.evaluate(x[(i - 1) as usize], y[(i - 1) as usize])
+                       + self.equation.evaluate(x[i as usize], y_pred));
+    
+            // Applying correction until convergence
             while (y_pred - y_corr).abs() > self.error {
                 y_pred = y_corr;
                 y_corr = y[(i - 2) as usize]
                     + self.h / 3.0
-                        * (self
-                            .equation
-                            .evaluate(x[(i - 2) as usize], y[(i - 2) as usize])
-                            + 4.0
-                                * self
-                                    .equation
-                                    .evaluate(x[(i - 1) as usize], y[(i - 1) as usize])
-                            + self.equation.evaluate(x[i as usize], y_pred));
+                        * (self.equation.evaluate(x[(i - 2) as usize], y[(i - 2) as usize])
+                           + 4.0 * self.equation.evaluate(x[(i - 1) as usize], y[(i - 1) as usize])
+                           + self.equation.evaluate(x[i as usize], y_pred));
             }
             y.push(y_corr);
         }
-
+    
         x.into_iter().zip(y).collect()
     }
+    
 
     // Helper function to select method and solve
     pub fn solve(&self) -> Vec<(f64, f64)> {
